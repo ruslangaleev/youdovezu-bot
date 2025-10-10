@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: youdovezu-postgres
+    environment:
+      POSTGRES_DB: youdovezu
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - youdovezu-network
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: youdovezu-api
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=youdovezu;Username=postgres;Password=postgres
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+    networks:
+      - youdovezu-network
+
+  frontend:
+    build:
+      context: ./frontend/client
+      dockerfile: Dockerfile
+    container_name: youdovezu-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - youdovezu-network
+
+volumes:
+  postgres_data:
+
+networks:
+  youdovezu-network:
+    driver: bridge
