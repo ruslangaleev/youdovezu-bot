@@ -91,6 +91,33 @@ youdovezu-bot/
 └── .env                   # Переменные окружения (создать из env.example)
 ```
 
+## 🤖 Настройка Telegram Bot
+
+### Получение токена бота
+1. Найдите @BotFather в Telegram
+2. Отправьте команду `/newbot`
+3. Следуйте инструкциям для создания бота
+4. Скопируйте полученный токен в файл `.env`
+
+### Настройка Webhook
+После запуска проекта настройте webhook для получения обновлений:
+
+```bash
+# Замените YOUR_TOKEN на токен вашего бота
+# Замените YOUR_WEBHOOK_URL на URL вашего API + /api/telegram/webhook
+curl -X POST "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=<YOUR_WEBHOOK_URL>"
+```
+
+**Пример:**
+```bash
+curl -X POST "https://api.telegram.org/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/setWebhook?url=https://yourdomain.com/api/telegram/webhook"
+```
+
+### Проверка webhook
+```bash
+curl -X GET "https://api.telegram.org/bot<YOUR_TOKEN>/getWebhookInfo"
+```
+
 ## 📞 Поддержка
 
 - **Email:** support@youdovezu.ru
