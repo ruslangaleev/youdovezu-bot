@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Telegram.Bot.Types;
 using Youdovezu.Application.Interfaces;
+using Youdovezu.Infrastructure.Services;
+using Youdovezu.Infrastructure.Converters;
 
 namespace Youdovezu.Presentation.Controllers;
 
@@ -26,7 +28,17 @@ public class BotController : ControllerBase
 
             if (update.Message != null)
             {
-                await _telegramBotService.ProcessMessageAsync(update.Message);
+                _logger.LogInformation("Message details - ChatId: {ChatId}, Text: {Text}, From: {FromId}", 
+                    update.Message.Chat?.Id, 
+                    update.Message.Text,
+                    update.Message.From?.Id);
+                    
+                var domainMessage = TelegramMessageMapper.ToDomainModel(update.Message);
+                await _telegramBotService.ProcessMessageAsync(domainMessage);
+            }
+            else
+            {
+                _logger.LogWarning("Update has no message. Update type: {UpdateType}", update.Type);
             }
 
             return Ok();

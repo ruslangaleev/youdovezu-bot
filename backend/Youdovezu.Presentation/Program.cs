@@ -1,14 +1,35 @@
 using Telegram.Bot;
 using Youdovezu.Application.Interfaces;
-using Youdovezu.Application.Services;
+using Youdovezu.Infrastructure.Services;
 using Youdovezu.Application.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower; // Для snake_case
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // Игнорировать регистр
+        options.JsonSerializerOptions.WriteIndented = true; // Для читаемости в логах
+        options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping; // Для корректной обработки Unicode
+        options.JsonSerializerOptions.Converters.Add(new Youdovezu.Infrastructure.Converters.ChatTypeConverter());
+        options.JsonSerializerOptions.Converters.Add(new Youdovezu.Infrastructure.Converters.UnixDateTimeConverter());
+        options.JsonSerializerOptions.Converters.Add(new Youdovezu.Infrastructure.Converters.MessageEntityTypeConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // Configure Telegram Bot
 var telegramSettings = builder.Configuration.GetSection("TelegramBot").Get<TelegramBotSettings>();
@@ -28,7 +49,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseCors("AllowAll");
+
+//app.UseHttpsRedirection();
 
 app.MapControllers();
 

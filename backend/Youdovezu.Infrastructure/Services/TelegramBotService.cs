@@ -1,8 +1,10 @@
+using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Youdovezu.Application.Interfaces;
+using Youdovezu.Domain.Models;
 
-namespace Youdovezu.Application.Services;
+namespace Youdovezu.Infrastructure.Services;
 
 public class TelegramBotService : ITelegramBotService
 {
@@ -29,17 +31,17 @@ public class TelegramBotService : ITelegramBotService
         }
     }
 
-    public async Task ProcessMessageAsync(Message message)
+    public async Task ProcessMessageAsync(TelegramMessage message)
     {
-        if (message.Text == null)
+        if (string.IsNullOrEmpty(message.Text))
         {
-            _logger.LogWarning("Received message without text from chat {ChatId}", message.Chat.Id);
+            _logger.LogWarning("Received message without text from chat {ChatId}", message.ChatId);
             return;
         }
 
-        _logger.LogInformation("Processing message from chat {ChatId}: {Message}", message.Chat.Id, message.Text);
+        _logger.LogInformation("Processing message from chat {ChatId}: {Message}", message.ChatId, message.Text);
 
         // Эхо-логика: отправляем то же сообщение обратно
-        await SendMessageAsync(message.Chat.Id, message.Text);
+        await SendMessageAsync(message.ChatId, message.Text);
     }
 }
