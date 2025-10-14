@@ -4,8 +4,19 @@ using Telegram.Bot.Types.Enums;
 
 namespace Youdovezu.Infrastructure.Converters;
 
+/// <summary>
+/// JSON конвертер для преобразования строковых значений в enum MessageEntityType
+/// Используется для корректной десериализации типов сущностей сообщений от Telegram API
+/// </summary>
 public class MessageEntityTypeConverter : JsonConverter<MessageEntityType>
 {
+    /// <summary>
+    /// Читает строковое значение из JSON и преобразует его в MessageEntityType enum
+    /// </summary>
+    /// <param name="reader">JSON reader</param>
+    /// <param name="typeToConvert">Тип для преобразования</param>
+    /// <param name="options">Опции сериализации</param>
+    /// <returns>Значение MessageEntityType enum</returns>
     public override MessageEntityType Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.String)
@@ -37,6 +48,12 @@ public class MessageEntityTypeConverter : JsonConverter<MessageEntityType>
         };
     }
 
+    /// <summary>
+    /// Записывает MessageEntityType enum в JSON как строковое значение
+    /// </summary>
+    /// <param name="writer">JSON writer</param>
+    /// <param name="value">Значение MessageEntityType для записи</param>
+    /// <param name="options">Опции сериализации</param>
     public override void Write(Utf8JsonWriter writer, MessageEntityType value, JsonSerializerOptions options)
     {
         var stringValue = value switch

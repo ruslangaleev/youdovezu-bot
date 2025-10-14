@@ -1,0 +1,23 @@
+services:
+  youdovezu.presentation:
+    image: ${DOCKER_REGISTRY-}youdovezupresentation
+    build:
+      context: .
+      dockerfile: Youdovezu.Presentation/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      # Telegram Bot Configuration - должны быть заданы через переменные окружения
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_SECRET_TOKEN=${TELEGRAM_SECRET_TOKEN}
+    ports:
+      - "8080:8080"  # HTTP
+      - "8081:8081"  # HTTPS
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/bot/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
