@@ -1,0 +1,6 @@
+services:
+  youdovezu.presentation:
+    image: ${DOCKER_REGISTRY-}youdovezupresentation
+    build:
+      context: .
+      dockerfile: Youdovezu.Presentation/Dockerfile
