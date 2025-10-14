@@ -5,6 +5,9 @@ using Youdovezu.Application.Models;
 using Youdovezu.Infrastructure.Middleware;
 using Youdovezu.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Youdovezu.Domain.Interfaces;
+using Youdovezu.Infrastructure.Repositories;
+using Youdovezu.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +91,10 @@ builder.Services.AddSingleton<ITelegramBotClient>(provider =>
 
 // Регистрируем сервис для работы с ботом
 builder.Services.AddScoped<ITelegramBotService, TelegramBotService>();
+
+// Регистрируем репозитории и сервисы
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
 

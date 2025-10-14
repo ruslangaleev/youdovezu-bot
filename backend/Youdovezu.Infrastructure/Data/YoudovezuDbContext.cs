@@ -17,6 +17,11 @@ public class YoudovezuDbContext : DbContext
     }
 
     /// <summary>
+    /// Пользователи платформы
+    /// </summary>
+    public DbSet<User> Users { get; set; }
+
+    /// <summary>
     /// Настройка модели данных при создании контекста
     /// </summary>
     /// <param name="modelBuilder">Построитель модели данных</param>
@@ -24,11 +29,16 @@ public class YoudovezuDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Здесь будут настройки для сущностей базы данных
-        // Пока что оставляем пустым, так как сущности еще не созданы
+        // Настройка сущности User
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TelegramId).IsUnique();
+            entity.Property(e => e.TelegramId).IsRequired();
+            entity.Property(e => e.Role).HasConversion<int>();
+            entity.Property(e => e.Status).HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
     }
-
-    // DbSet свойства будут добавлены по мере создания сущностей
-    // Например:
-    // public DbSet<TelegramMessage> TelegramMessages { get; set; }
 }
