@@ -6,6 +6,10 @@ using Youdovezu.Infrastructure.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Явно добавляем Environment Variables Provider для корректной работы с Docker Compose
+// Это обеспечивает маппинг переменных Telegram__* на Telegram:*
+builder.Configuration.AddEnvironmentVariables();
+
 // Добавляем сервисы в контейнер
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -37,40 +41,46 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Настройка Telegram Bot сервисов
-var telegramSettings = builder.Configuration.GetSection("TelegramBot").Get<TelegramBotSettings>();
+// Настройка Telegram Bot сервисов с использованием IOptions<TelegramSettings>
+// Configuration Mapping автоматически поддерживает переменные окружения
+// Переменные TELEGRAM__BOT_TOKEN автоматически маппятся на Telegram:BotToken
+builder.Services.Configure<TelegramSettings>(builder.Configuration.GetSection("Telegram"));
 
-// Поддержка переменных окружения для токенов (приоритет над appsettings)
-var botToken = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN") ?? telegramSettings?.BotToken;
-var secretToken = Environment.GetEnvironmentVariable("TELEGRAM_SECRET_TOKEN") ?? telegramSettings?.SecretToken;
+// Получаем настройки для валидации обязательных значений
+var telegramSettings = builder.Configuration.GetSection("Telegram").Get<TelegramSettings>();
 
-if (!string.IsNullOrEmpty(botToken))
+// Проверяем обязательные значения и выбрасываем исключение если они отсутствуют
+if (string.IsNullOrEmpty(telegramSettings?.BotToken))
 {
-    // Регистрируем Telegram Bot клиент как singleton
-    builder.Services.AddSingleton<ITelegramBotClient>(provider => 
-        new TelegramBotClient(botToken));
-    
-    // Регистрируем сервис для работы с ботом
-    builder.Services.AddScoped<ITelegramBotService, TelegramBotService>();
+    throw new InvalidOperationException("Telegram:BotToken is required but not configured. " +
+        "Set it in appsettings.json or via TELEGRAM__BOT_TOKEN environment variable.");
 }
-else
+
+if (string.IsNullOrEmpty(telegramSettings?.SecretToken))
 {
-    // Логирование будет выполнено после создания приложения
+    throw new InvalidOperationException("Telegram:SecretToken is required but not configured. " +
+        "Set it in appsettings.json or via TELEGRAM__SECRET_TOKEN environment variable.");
 }
+
+// Регистрируем Telegram Bot клиент как singleton
+builder.Services.AddSingleton<ITelegramBotClient>(provider => 
+    new TelegramBotClient(telegramSettings.BotToken));
+
+// Регистрируем сервис для работы с ботом
+builder.Services.AddScoped<ITelegramBotService, TelegramBotService>();
 
 var app = builder.Build();
 
 // Логируем источник токенов после создания приложения
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
-if (!string.IsNullOrEmpty(botToken))
-{
-    var tokenSource = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN") != null ? "Environment Variable" : "Configuration File";
-    logger.LogInformation("Telegram Bot Token loaded from: {Source}", tokenSource);
-}
-else
-{
-    logger.LogWarning("Telegram Bot Token not found in environment variables or configuration");
-}
+logger.LogInformation("Telegram Bot Token loaded successfully from configuration");
+logger.LogInformation("Telegram Secret Token loaded successfully from configuration");
+
+// Дополнительное логирование для отладки переменных окружения
+var envBotToken = Environment.GetEnvironmentVariable("Telegram__BotToken");
+var envSecretToken = Environment.GetEnvironmentVariable("Telegram__SecretToken");
+logger.LogInformation("Environment Telegram__BotToken: {HasValue}", !string.IsNullOrEmpty(envBotToken));
+logger.LogInformation("Environment Telegram__SecretToken: {HasValue}", !string.IsNullOrEmpty(envSecretToken));
 
 // Настройка pipeline обработки HTTP запросов
 if (app.Environment.IsDevelopment())

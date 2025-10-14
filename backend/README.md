@@ -43,20 +43,20 @@
 
 **Windows:**
 ```cmd
-set TELEGRAM_BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI
-set TELEGRAM_SECRET_TOKEN=your-secret-token-here
+set TELEGRAM_BOT__BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI
+set TELEGRAM_BOT__SECRET_TOKEN=your-secret-token-here
 ```
 
 **Linux/Mac:**
 ```bash
-export TELEGRAM_BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI
-export TELEGRAM_SECRET_TOKEN=your-secret-token-here
+export TELEGRAM_BOT__BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI
+export TELEGRAM_BOT__SECRET_TOKEN=your-secret-token-here
 ```
 
 **Docker:**
 ```bash
-docker run -e TELEGRAM_BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI \
-           -e TELEGRAM_SECRET_TOKEN=your-secret-token-here \
+docker run -e TELEGRAM_BOT__BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI \
+           -e TELEGRAM_BOT__SECRET_TOKEN=your-secret-token-here \
            your-app
 ```
 
@@ -65,8 +65,8 @@ docker run -e TELEGRAM_BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI 
 services:
   youdovezu.presentation:
     environment:
-      - TELEGRAM_BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI
-      - TELEGRAM_SECRET_TOKEN=your-secret-token-here
+      - TELEGRAM_BOT__BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI
+      - TELEGRAM_BOT__SECRET_TOKEN=your-secret-token-here
 ```
 
 ### 3. Настройка Webhook с секретным токеном
@@ -206,8 +206,8 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 #### Переменные окружения для Docker
 
 **Обязательные переменные:**
-- `TELEGRAM_BOT_TOKEN` - токен бота от BotFather
-- `TELEGRAM_SECRET_TOKEN` - секретный токен для webhook
+- `TELEGRAM_BOT__BOT_TOKEN` - токен бота от BotFather
+- `TELEGRAM_BOT__SECRET_TOKEN` - секретный токен для webhook
 
 **Опциональные переменные:**
 - `ASPNETCORE_ENVIRONMENT` - среда выполнения (Development/Production)
@@ -219,13 +219,13 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 **Запуск с переменными окружения:**
 ```bash
 # Windows
-set TELEGRAM_BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI
-set TELEGRAM_SECRET_TOKEN=my-secret-token
+set TELEGRAM_BOT__BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI
+set TELEGRAM_BOT__SECRET_TOKEN=my-secret-token
 docker-compose up --build
 
 # Linux/Mac
-export TELEGRAM_BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI
-export TELEGRAM_SECRET_TOKEN=my-secret-token
+export TELEGRAM_BOT__BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI
+export TELEGRAM_BOT__SECRET_TOKEN=my-secret-token
 docker-compose up --build
 ```
 

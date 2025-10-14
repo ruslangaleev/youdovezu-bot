@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 using System.Text;
+using Youdovezu.Application.Models;
 
 namespace Youdovezu.Infrastructure.Middleware;
 
@@ -14,19 +16,19 @@ public class TelegramWebhookValidationMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<TelegramWebhookValidationMiddleware> _logger;
-    private readonly IConfiguration _configuration;
+    private readonly TelegramSettings _telegramSettings;
 
     /// <summary>
     /// Конструктор middleware
     /// </summary>
     /// <param name="next">Следующий middleware в pipeline</param>
     /// <param name="logger">Логгер для записи событий</param>
-    /// <param name="configuration">Конфигурация приложения</param>
-    public TelegramWebhookValidationMiddleware(RequestDelegate next, ILogger<TelegramWebhookValidationMiddleware> logger, IConfiguration configuration)
+    /// <param name="telegramSettings">Настройки Telegram бота</param>
+    public TelegramWebhookValidationMiddleware(RequestDelegate next, ILogger<TelegramWebhookValidationMiddleware> logger, IOptions<TelegramSettings> telegramSettings)
     {
         _next = next;
         _logger = logger;
-        _configuration = configuration;
+        _telegramSettings = telegramSettings.Value;
     }
 
     /// <summary>
@@ -39,9 +41,8 @@ public class TelegramWebhookValidationMiddleware
         // Проверяем только webhook endpoint
         if (context.Request.Path.StartsWithSegments("/api/bot/webhook"))
         {
-            // Поддержка переменных окружения для секретного токена (приоритет над конфигурацией)
-            var secretToken = Environment.GetEnvironmentVariable("TELEGRAM_SECRET_TOKEN") 
-                             ?? _configuration["TelegramBot:SecretToken"];
+            // Используем настройки из IOptions<TelegramSettings>
+            var secretToken = _telegramSettings.SecretToken;
             
             if (!string.IsNullOrEmpty(secretToken))
             {
