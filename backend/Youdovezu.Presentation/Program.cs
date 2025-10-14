@@ -3,6 +3,8 @@ using Youdovezu.Application.Interfaces;
 using Youdovezu.Infrastructure.Services;
 using Youdovezu.Application.Models;
 using Youdovezu.Infrastructure.Middleware;
+using Youdovezu.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,10 +43,28 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Настройка Entity Framework с PostgreSQL
+builder.Services.AddDbContext<YoudovezuDbContext>(options =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+        ?? builder.Configuration["Database:ConnectionString"];
+    
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new InvalidOperationException("Database connection string is not configured. " +
+            "Set Database:ConnectionString in appsettings.json or DATABASE__CONNECTIONSTRING environment variable.");
+    }
+    
+    options.UseNpgsql(connectionString);
+});
+
 // Настройка Telegram Bot сервисов с использованием IOptions<TelegramSettings>
 // Configuration Mapping автоматически поддерживает переменные окружения
 // Переменные TELEGRAM__BOT_TOKEN автоматически маппятся на Telegram:BotToken
 builder.Services.Configure<TelegramSettings>(builder.Configuration.GetSection("Telegram"));
+
+// Настройка Database Settings
+builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection("Database"));
 
 // Получаем настройки для валидации обязательных значений
 var telegramSettings = builder.Configuration.GetSection("Telegram").Get<TelegramSettings>();
@@ -74,6 +94,23 @@ var app = builder.Build();
 // Логируем источник токенов после создания приложения
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("Telegram Bot configuration loaded successfully");
+
+// Автоматическое создание базы данных при запуске приложения
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<YoudovezuDbContext>();
+    try
+    {
+        // Создаем базу данных если она не существует
+        await context.Database.EnsureCreatedAsync();
+        logger.LogInformation("Database connection established successfully");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while creating the database");
+        throw;
+    }
+}
 
 // Дополнительное логирование для отладки переменных окружения (только в Development)
 if (app.Environment.IsDevelopment())

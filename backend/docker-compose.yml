@@ -4,3 +4,23 @@ services:
     build:
       context: .
       dockerfile: Youdovezu.Presentation/Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      - Database__ConnectionString=Host=postgres;Port=5432;Database=youdovezu;Username=youdovezu;Password=youdovezu_password
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: youdovezu-postgres
+    environment:
+      - POSTGRES_DB=youdovezu
+      - POSTGRES_USER=youdovezu
+      - POSTGRES_PASSWORD=youdovezu_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
