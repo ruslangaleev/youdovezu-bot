@@ -73,14 +73,16 @@ var app = builder.Build();
 
 // Логируем источник токенов после создания приложения
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("Telegram Bot Token loaded successfully from configuration");
-logger.LogInformation("Telegram Secret Token loaded successfully from configuration");
+logger.LogInformation("Telegram Bot configuration loaded successfully");
 
-// Дополнительное логирование для отладки переменных окружения
-var envBotToken = Environment.GetEnvironmentVariable("Telegram__BotToken");
-var envSecretToken = Environment.GetEnvironmentVariable("Telegram__SecretToken");
-logger.LogInformation("Environment Telegram__BotToken: {HasValue}", !string.IsNullOrEmpty(envBotToken));
-logger.LogInformation("Environment Telegram__SecretToken: {HasValue}", !string.IsNullOrEmpty(envSecretToken));
+// Дополнительное логирование для отладки переменных окружения (только в Development)
+if (app.Environment.IsDevelopment())
+{
+    var envBotToken = Environment.GetEnvironmentVariable("Telegram__BotToken");
+    var envSecretToken = Environment.GetEnvironmentVariable("Telegram__SecretToken");
+    logger.LogInformation("Environment Telegram__BotToken: {HasValue}", !string.IsNullOrEmpty(envBotToken));
+    logger.LogInformation("Environment Telegram__SecretToken: {HasValue}", !string.IsNullOrEmpty(envSecretToken));
+}
 
 // Настройка pipeline обработки HTTP запросов
 if (app.Environment.IsDevelopment())
@@ -96,7 +98,8 @@ app.UseCors("AllowAll");
 // Добавляем middleware для валидации Telegram webhook (защита от сторонних запросов)
 app.UseMiddleware<TelegramWebhookValidationMiddleware>();
 
-//app.UseHttpsRedirection(); // Закомментировано для локальной разработки
+// HTTPS редирект отключен для локальной разработки
+// app.UseHttpsRedirection();
 
 // Маппинг контроллеров
 app.MapControllers();
