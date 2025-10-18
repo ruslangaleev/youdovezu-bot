@@ -14,4 +14,9 @@ public class TelegramSettings
     /// Секретный токен для защиты webhook от сторонних запросов
     /// </summary>
     public string SecretToken { get; set; } = string.Empty;
+
+    /// <summary>
+    /// URL веб-приложения для Telegram WebApp
+    /// </summary>
+    public string WebAppUrl { get; set; } = string.Empty;
 }

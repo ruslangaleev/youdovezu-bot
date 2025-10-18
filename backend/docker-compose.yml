@@ -5,9 +5,13 @@ services:
       context: .
       dockerfile: Youdovezu.Presentation/Dockerfile
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - Database__ConnectionString=Host=postgres;Port=5432;Database=youdovezu;Username=youdovezu;Password=youdovezu_password
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
 
   postgres:
     image: postgres:15-alpine
@@ -21,6 +25,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youdovezu -d youdovezu"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

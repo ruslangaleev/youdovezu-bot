@@ -36,9 +36,9 @@ public class User
     public string? PhoneNumber { get; set; }
 
     /// <summary>
-    /// Роль пользователя в системе
+    /// Роль пользователя в системе (права доступа)
     /// </summary>
-    public UserRole Role { get; set; } = UserRole.User;
+    public SystemRole SystemRole { get; set; } = SystemRole.User;
 
     /// <summary>
     /// Согласие с политикой конфиденциальности
@@ -51,12 +51,22 @@ public class User
     public DateTime? PrivacyConsentDate { get; set; }
 
     /// <summary>
-    /// Дата начала триального периода (для будущих водителей)
+    /// Может ли пользователь быть пассажиром (после согласия с ПД)
+    /// </summary>
+    public bool CanBePassenger { get; set; } = false;
+
+    /// <summary>
+    /// Может ли пользователь быть водителем (после подтверждения водительских данных)
+    /// </summary>
+    public bool CanBeDriver { get; set; } = false;
+
+    /// <summary>
+    /// Дата начала триального периода (для водителей)
     /// </summary>
     public DateTime? TrialStartDate { get; set; }
 
     /// <summary>
-    /// Дата окончания триального периода (для будущих водителей)
+    /// Дата окончания триального периода (для водителей)
     /// </summary>
     public DateTime? TrialEndDate { get; set; }
 
@@ -89,6 +99,42 @@ public class User
     }
 
     /// <summary>
+    /// Проверяет, может ли пользователь быть пассажиром
+    /// </summary>
+    /// <returns>True, если пользователь может быть пассажиром</returns>
+    public bool CanActAsPassenger()
+    {
+        return PrivacyConsent && CanBePassenger && Status == UserStatus.Active;
+    }
+
+    /// <summary>
+    /// Проверяет, может ли пользователь быть водителем
+    /// </summary>
+    /// <returns>True, если пользователь может быть водителем</returns>
+    public bool CanActAsDriver()
+    {
+        return PrivacyConsent && CanBeDriver && Status == UserStatus.Active;
+    }
+
+    /// <summary>
+    /// Проверяет, является ли пользователь модератором или администратором
+    /// </summary>
+    /// <returns>True, если пользователь имеет права модерации</returns>
+    public bool IsModerator()
+    {
+        return SystemRole == SystemRole.Moderator || SystemRole == SystemRole.Admin;
+    }
+
+    /// <summary>
+    /// Проверяет, является ли пользователь администратором
+    /// </summary>
+    /// <returns>True, если пользователь администратор</returns>
+    public bool IsAdmin()
+    {
+        return SystemRole == SystemRole.Admin;
+    }
+
+    /// <summary>
     /// Получает полное имя пользователя
     /// </summary>
     /// <returns>Полное имя или username, или "Пользователь"</returns>
@@ -108,9 +154,9 @@ public class User
 }
 
 /// <summary>
-/// Роли пользователей в системе
+/// Системные роли пользователей (права доступа)
 /// </summary>
-public enum UserRole
+public enum SystemRole
 {
     /// <summary>
     /// Обычный пользователь
@@ -118,9 +164,9 @@ public enum UserRole
     User = 0,
 
     /// <summary>
-    /// Водитель
+    /// Модератор
     /// </summary>
-    Driver = 1,
+    Moderator = 1,
 
     /// <summary>
     /// Администратор

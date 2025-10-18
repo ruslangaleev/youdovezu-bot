@@ -8,10 +8,12 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "@twa-dev/sdk": "^8.0.2",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.126",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "axios": "^1.12.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-scripts": "5.0.1",
@@ -20,7 +22,12 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:testing": "cross-env REACT_APP_TEST_MODE=true react-scripts start",
     "build": "react-scripts build",
+    "build:testing": "copy env.testing .env && react-scripts build",
+    "build:production": "copy env.production .env && react-scripts build",
+    "build:testing:unix": "cp env.testing .env && react-scripts build",
+    "build:production:unix": "cp env.production .env && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -41,5 +48,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0"
   }
 }

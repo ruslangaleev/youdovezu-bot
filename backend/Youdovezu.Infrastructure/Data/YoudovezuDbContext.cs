@@ -35,10 +35,15 @@ public class YoudovezuDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.TelegramId).IsUnique();
             entity.Property(e => e.TelegramId).IsRequired();
-            entity.Property(e => e.Role).HasConversion<int>();
+            entity.Property(e => e.SystemRole).HasConversion<int>();
             entity.Property(e => e.Status).HasConversion<int>();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            
+            // Индексы для быстрого поиска по возможностям
+            entity.HasIndex(e => e.CanBePassenger);
+            entity.HasIndex(e => e.CanBeDriver);
+            entity.HasIndex(e => e.SystemRole);
         });
     }
 }

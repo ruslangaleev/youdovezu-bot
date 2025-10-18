@@ -50,9 +50,11 @@ public class UserService : IUserService
             Username = username,
             FirstName = firstName,
             LastName = lastName,
-            Role = UserRole.User,
+            SystemRole = SystemRole.User,
             Status = UserStatus.PendingRegistration,
             PrivacyConsent = false,
+            CanBePassenger = false,
+            CanBeDriver = false,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -90,6 +92,7 @@ public class UserService : IUserService
 
         user.PrivacyConsent = true;
         user.PrivacyConsentDate = DateTime.UtcNow;
+        user.CanBePassenger = true; // После согласия с ПД может быть пассажиром
         user.Status = UserStatus.Active;
         user.UpdatedAt = DateTime.UtcNow;
 
@@ -132,5 +135,56 @@ public class UserService : IUserService
     public async Task<bool> IsUserRegisteredAsync(long telegramId)
     {
         return await _userRepository.ExistsByTelegramIdAsync(telegramId);
+    }
+
+    /// <summary>
+    /// Включает возможность быть водителем для пользователя
+    /// </summary>
+    /// <param name="telegramId">Telegram ID пользователя</param>
+    /// <returns>Обновленный пользователь</returns>
+    public async Task<User> EnableDriverCapabilityAsync(long telegramId)
+    {
+        _logger.LogInformation("Enabling driver capability for user with Telegram ID: {TelegramId}", telegramId);
+
+        var user = await _userRepository.GetByTelegramIdAsync(telegramId);
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User with Telegram ID {telegramId} not found");
+        }
+
+        user.CanBeDriver = true;
+        user.TrialStartDate = DateTime.UtcNow;
+        user.TrialEndDate = DateTime.UtcNow.AddDays(14); // 14 дней триала
+        user.UpdatedAt = DateTime.UtcNow;
+
+        var updatedUser = await _userRepository.UpdateAsync(user);
+        _logger.LogInformation("Driver capability enabled for user ID: {UserId}", updatedUser.Id);
+
+        return updatedUser;
+    }
+
+    /// <summary>
+    /// Обновляет системную роль пользователя
+    /// </summary>
+    /// <param name="telegramId">Telegram ID пользователя</param>
+    /// <param name="systemRole">Новая системная роль</param>
+    /// <returns>Обновленный пользователь</returns>
+    public async Task<User> UpdateSystemRoleAsync(long telegramId, SystemRole systemRole)
+    {
+        _logger.LogInformation("Updating system role for user with Telegram ID: {TelegramId} to {Role}", telegramId, systemRole);
+
+        var user = await _userRepository.GetByTelegramIdAsync(telegramId);
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User with Telegram ID {telegramId} not found");
+        }
+
+        user.SystemRole = systemRole;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        var updatedUser = await _userRepository.UpdateAsync(user);
+        _logger.LogInformation("System role updated for user ID: {UserId}", updatedUser.Id);
+
+        return updatedUser;
     }
 }

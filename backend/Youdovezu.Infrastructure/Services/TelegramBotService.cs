@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using Youdovezu.Application.Interfaces;
+using Youdovezu.Application.Models;
 using Youdovezu.Domain.Models;
 using Youdovezu.Domain.Entities;
 
@@ -16,6 +18,7 @@ public class TelegramBotService : ITelegramBotService
     private readonly ITelegramBotClient _botClient;
     private readonly ILogger<TelegramBotService> _logger;
     private readonly IUserService _userService;
+    private readonly TelegramSettings _telegramSettings;
 
     /// <summary>
     /// Конструктор сервиса
@@ -23,11 +26,13 @@ public class TelegramBotService : ITelegramBotService
     /// <param name="botClient">Клиент Telegram Bot API</param>
     /// <param name="logger">Логгер для записи событий</param>
     /// <param name="userService">Сервис для работы с пользователями</param>
-    public TelegramBotService(ITelegramBotClient botClient, ILogger<TelegramBotService> logger, IUserService userService)
+    /// <param name="telegramSettings">Настройки Telegram</param>
+    public TelegramBotService(ITelegramBotClient botClient, ILogger<TelegramBotService> logger, IUserService userService, IOptions<TelegramSettings> telegramSettings)
     {
         _botClient = botClient;
         _logger = logger;
         _userService = userService;
+        _telegramSettings = telegramSettings.Value;
     }
 
     /// <summary>
@@ -277,7 +282,7 @@ public class TelegramBotService : ITelegramBotService
         {
             new[]
             {
-                InlineKeyboardButton.WithWebApp("🌐 Открыть веб-приложение", new Telegram.Bot.Types.WebAppInfo { Url = "http://localhost:3000" })
+                InlineKeyboardButton.WithWebApp("🌐 Открыть веб-приложение", new Telegram.Bot.Types.WebAppInfo { Url = _telegramSettings.WebAppUrl })
             }
         });
 
@@ -287,4 +292,5 @@ public class TelegramBotService : ITelegramBotService
             replyMarkup: keyboard,
             parseMode: Telegram.Bot.Types.Enums.ParseMode.Markdown);
     }
+
 }

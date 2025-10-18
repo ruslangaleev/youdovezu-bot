@@ -46,4 +46,19 @@ public interface IUserService
     /// <param name="telegramId">Telegram ID пользователя</param>
     /// <returns>True, если пользователь зарегистрирован</returns>
     Task<bool> IsUserRegisteredAsync(long telegramId);
+
+    /// <summary>
+    /// Включает возможность быть водителем для пользователя
+    /// </summary>
+    /// <param name="telegramId">Telegram ID пользователя</param>
+    /// <returns>Обновленный пользователь</returns>
+    Task<User> EnableDriverCapabilityAsync(long telegramId);
+
+    /// <summary>
+    /// Обновляет системную роль пользователя
+    /// </summary>
+    /// <param name="telegramId">Telegram ID пользователя</param>
+    /// <param name="systemRole">Новая системная роль</param>
+    /// <returns>Обновленный пользователь</returns>
+    Task<User> UpdateSystemRoleAsync(long telegramId, SystemRole systemRole);
 }

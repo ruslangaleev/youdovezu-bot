@@ -96,6 +96,15 @@ builder.Services.AddScoped<ITelegramBotService, TelegramBotService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 
+// Регистрируем сервис валидации Telegram WebApp
+builder.Services.AddScoped<TelegramWebAppValidationService>(provider =>
+{
+    var botToken = builder.Configuration["Telegram:BotToken"] 
+        ?? throw new InvalidOperationException("Telegram BotToken is not configured");
+    var logger = provider.GetRequiredService<ILogger<TelegramWebAppValidationService>>();
+    return new TelegramWebAppValidationService(botToken, logger);
+});
+
 var app = builder.Build();
 
 // Логируем источник токенов после создания приложения
@@ -118,6 +127,7 @@ using (var scope = app.Services.CreateScope())
         throw;
     }
 }
+
 
 // Дополнительное логирование для отладки переменных окружения (только в Development)
 if (app.Environment.IsDevelopment())
