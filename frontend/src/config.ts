@@ -60,7 +60,6 @@ export const log = (...args: any[]) => {
 export const getInitData = (): string => {
   // В реальном Telegram WebApp
   if (window.Telegram?.WebApp?.initData) {
-    alert(`initData для отправки на сервер:\n\n${window.Telegram.WebApp.initData}`);
     return window.Telegram.WebApp.initData;
   }
   

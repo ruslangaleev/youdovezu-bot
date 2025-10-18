@@ -64,9 +64,6 @@ function App() {
 
       log('Checking user registration with initData length:', initData.length);
 
-      // Показываем initData в алерте для отладки
-      //alert(`initData для отправки на сервер:\n\n${initData}`);
-
       // Отправляем POST запрос с initData
       const formData = new FormData();
       formData.append('initData', initData);
@@ -75,22 +72,23 @@ function App() {
       
       log('User info received:', response.data);
       
-      // Показываем ответ сервера в алерте для отладки
-      alert(`Ответ сервера:\n\nСтатус: ${response.status}\nДанные: ${JSON.stringify(response.data, null, 2)}`);
-      
       setUserInfo(response.data);
     } catch (err: any) {
       log('Error checking user registration:', err);
       
-      // Показываем ошибку в алерте для отладки
-      alert(`Ошибка запроса:\n\nСтатус: ${err.response?.status || 'Нет ответа'}\nСообщение: ${err.message}\nДанные: ${JSON.stringify(err.response?.data || {}, null, 2)}`);
-      
+      // Обрабатываем различные типы ошибок
       if (err.response?.status === 401) {
         setError('Ошибка авторизации. Пожалуйста, откройте приложение через Telegram бота.');
       } else if (err.response?.status === 400) {
-        setError('Неверные данные авторизации. Пожалуйста, обновите страницу.');
+        const errorMessage = err.response?.data?.error || 'Неверные данные авторизации';
+        setError(`${errorMessage}. Пожалуйста, обновите страницу.`);
+      } else if (err.response?.status === 500) {
+        const errorMessage = err.response?.data?.error || 'Внутренняя ошибка сервера';
+        setError(`${errorMessage}. Попробуйте позже или обратитесь в поддержку.`);
+      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+        setError('Ошибка сети. Проверьте подключение к интернету и попробуйте снова.');
       } else {
-        setError('Ошибка при проверке статуса регистрации. Попробуйте позже.');
+        setError('Неожиданная ошибка. Попробуйте позже или обратитесь в поддержку.');
       }
     } finally {
       setLoading(false);
@@ -138,6 +136,47 @@ function App() {
 
   // Пользователь не зарегистрирован или не завершил регистрацию
   if (!userInfo.isRegistered) {
+    // Определяем текущий этап регистрации
+    const getRegistrationSteps = () => {
+      const steps = [];
+      
+      // Этап 1: Открыть бота
+      steps.push({
+        number: 1,
+        text: "Откройте бота @YoudovezuBot",
+        completed: true // Всегда доступен
+      });
+      
+      // Этап 2: Команда /start
+      steps.push({
+        number: 2,
+        text: "Выполните команду /start",
+        completed: true // Всегда доступен
+      });
+      
+      // Этап 3: Согласие с политикой конфиденциальности
+      const privacyStep = {
+        number: 3,
+        text: "Согласитесь с политикой конфиденциальности",
+        completed: userInfo.isPrivacyConsentGiven || false
+      };
+      steps.push(privacyStep);
+      
+      // Этап 4: Подтверждение номера телефона
+      const phoneStep = {
+        number: 4,
+        text: "Подтвердите номер телефона",
+        completed: userInfo.isPhoneConfirmed || false
+      };
+      steps.push(phoneStep);
+      
+      return steps;
+    };
+
+    const steps = getRegistrationSteps();
+    const completedSteps = steps.filter(step => step.completed).length;
+    const totalSteps = steps.length;
+
     return (
       <div className="app">
         <TelegramWebAppInfo isTelegramWebApp={isTelegramWebApp} />
@@ -146,24 +185,33 @@ function App() {
           <h1>YouDovezu</h1>
           <h2>Завершите регистрацию</h2>
           <p>{userInfo.message}</p>
-          <div className="steps">
-            <div className="step">
-              <span className="step-number">1</span>
-              <span>Откройте бота @YoudovezuBot</span>
+          
+          {/* Прогресс регистрации */}
+          <div className="registration-progress">
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${(completedSteps / totalSteps) * 100}%` }}
+              ></div>
             </div>
-            <div className="step">
-              <span className="step-number">2</span>
-              <span>Выполните команду /start</span>
-            </div>
-            <div className="step">
-              <span className="step-number">3</span>
-              <span>Согласитесь с политикой конфиденциальности</span>
-            </div>
-            <div className="step">
-              <span className="step-number">4</span>
-              <span>Подтвердите номер телефона</span>
-            </div>
+            <p className="progress-text">
+              Прогресс: {completedSteps} из {totalSteps} шагов
+            </p>
           </div>
+          
+          <div className="steps">
+            {steps.map((step, index) => (
+              <div key={index} className={`step ${step.completed ? 'completed' : 'pending'}`}>
+                <span className={`step-number ${step.completed ? 'completed' : 'pending'}`}>
+                  {step.completed ? '✓' : step.number}
+                </span>
+                <span className={step.completed ? 'completed-text' : 'pending-text'}>
+                  {step.text}
+                </span>
+              </div>
+            ))}
+          </div>
+          
           <button onClick={() => window.Telegram?.WebApp?.close()} className="btn">
             Закрыть
           </button>

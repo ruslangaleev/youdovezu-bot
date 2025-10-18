@@ -111,19 +111,19 @@ var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("Telegram Bot configuration loaded successfully");
 
-// Автоматическое создание базы данных при запуске приложения
+// Автоматическое применение миграций при запуске приложения
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<YoudovezuDbContext>();
     try
     {
-        // Создаем базу данных если она не существует
-        await context.Database.EnsureCreatedAsync();
-        logger.LogInformation("Database connection established successfully");
+        // Применяем все ожидающие миграции
+        await context.Database.MigrateAsync();
+        logger.LogInformation("Database migrations applied successfully");
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "An error occurred while creating the database");
+        logger.LogError(ex, "An error occurred while applying database migrations");
         throw;
     }
 }
