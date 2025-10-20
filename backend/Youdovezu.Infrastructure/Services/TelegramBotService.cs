@@ -56,6 +56,27 @@ public class TelegramBotService : ITelegramBotService
     }
 
     /// <summary>
+    /// Отправляет текстовое сообщение с клавиатурой в указанный чат
+    /// </summary>
+    /// <param name="chatId">ID чата для отправки сообщения</param>
+    /// <param name="message">Текст сообщения</param>
+    /// <param name="replyMarkup">Разметка клавиатуры</param>
+    /// <returns>Task, представляющий асинхронную операцию</returns>
+    public async Task SendMessageAsync(long chatId, string message, object replyMarkup)
+    {
+        try
+        {
+            await _botClient.SendTextMessageAsync(chatId, message, replyMarkup: replyMarkup as IReplyMarkup);
+            _logger.LogInformation("Message with keyboard sent to chat {ChatId}: {Message}", chatId, message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send message with keyboard to chat {ChatId}", chatId);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Обрабатывает входящее сообщение от пользователя
     /// Реализует логику регистрации и обработки команд
     /// </summary>

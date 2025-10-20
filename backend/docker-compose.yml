@@ -9,6 +9,11 @@ services:
         condition: service_healthy
     environment:
       - Database__ConnectionString=Host=postgres;Port=5432;Database=youdovezu;Username=youdovezu;Password=youdovezu_password
+      - Telegram__BotToken=${Telegram__BotToken:-7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI}
+      - Telegram__SecretToken=${Telegram__SecretToken:-dev-secret-token-123}
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - ASPNETCORE_HTTP_PORTS=${ASPNETCORE_HTTP_PORTS:-8080}
+      - ASPNETCORE_HTTPS_PORTS=${ASPNETCORE_HTTPS_PORTS:-8081}
     ports:
       - "8080:8080"
     restart: unless-stopped

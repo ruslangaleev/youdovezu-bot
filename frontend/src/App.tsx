@@ -135,36 +135,22 @@ function App() {
   }
 
   // Пользователь не зарегистрирован или не завершил регистрацию
-  if (!userInfo.isRegistered) {
-    // Определяем текущий этап регистрации
+  if (!userInfo.isRegistered || !userInfo.isPrivacyConsentGiven || !userInfo.isPhoneConfirmed) {
+    // Определяем текущий этап регистрации (только 2 шага)
     const getRegistrationSteps = () => {
       const steps = [];
       
-      // Этап 1: Открыть бота
-      steps.push({
-        number: 1,
-        text: "Откройте бота @YoudovezuBot",
-        completed: true // Всегда доступен
-      });
-      
-      // Этап 2: Команда /start
-      steps.push({
-        number: 2,
-        text: "Выполните команду /start",
-        completed: true // Всегда доступен
-      });
-      
-      // Этап 3: Согласие с политикой конфиденциальности
+      // Этап 1: Согласие с политикой конфиденциальности
       const privacyStep = {
-        number: 3,
+        number: 1,
         text: "Согласитесь с политикой конфиденциальности",
         completed: userInfo.isPrivacyConsentGiven || false
       };
       steps.push(privacyStep);
       
-      // Этап 4: Подтверждение номера телефона
+      // Этап 2: Подтверждение номера телефона
       const phoneStep = {
-        number: 4,
+        number: 2,
         text: "Подтвердите номер телефона",
         completed: userInfo.isPhoneConfirmed || false
       };
