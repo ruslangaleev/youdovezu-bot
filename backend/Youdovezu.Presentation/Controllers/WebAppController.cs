@@ -68,8 +68,12 @@ public class WebAppController : ControllerBase
             }
 
             // Проверяем статус регистрации
+            _logger.LogInformation("User {TelegramId} registration status: PrivacyConsent={PrivacyConsent}, PhoneNumber={PhoneNumber}", 
+                user.TelegramId, user.PrivacyConsent, user.PhoneNumber);
+            
             if (!user.PrivacyConsent)
             {
+                _logger.LogInformation("User {TelegramId} has not given privacy consent", user.TelegramId);
                 return Ok(new
                 {
                     isRegistered = false,
@@ -80,19 +84,25 @@ public class WebAppController : ControllerBase
 
             if (string.IsNullOrEmpty(user.PhoneNumber))
             {
+                _logger.LogInformation("User {TelegramId} has given privacy consent but phone not confirmed", user.TelegramId);
                 return Ok(new
                 {
                     isRegistered = false,
-                    isPrivacyConsentGiven = true,
+                    isPrivacyConsentGiven = user.PrivacyConsent,
                     isPhoneConfirmed = false,
                     message = "Для использования веб-приложения необходимо подтвердить номер телефона. Пожалуйста, завершите регистрацию в боте."
                 });
             }
 
             // Пользователь полностью зарегистрирован
+            _logger.LogInformation("User {TelegramId} is fully registered: PrivacyConsent={PrivacyConsent}, PhoneConfirmed={PhoneConfirmed}", 
+                user.TelegramId, user.PrivacyConsent, !string.IsNullOrEmpty(user.PhoneNumber));
+            
             return Ok(new
             {
                 isRegistered = true,
+                isPrivacyConsentGiven = user.PrivacyConsent,
+                isPhoneConfirmed = !string.IsNullOrEmpty(user.PhoneNumber),
                 user = new
                 {
                     id = user.Id,

@@ -72,6 +72,14 @@ function App() {
       
       log('User info received:', response.data);
       
+      // Отладочная информация
+      console.log('=== DEBUG: Server Response ===');
+      console.log('Full response.data:', response.data);
+      console.log('isPrivacyConsentGiven:', response.data.isPrivacyConsentGiven);
+      console.log('isPhoneConfirmed:', response.data.isPhoneConfirmed);
+      console.log('isRegistered:', response.data.isRegistered);
+      console.log('==============================');
+      
       setUserInfo(response.data);
     } catch (err: any) {
       log('Error checking user registration:', err);
@@ -139,6 +147,11 @@ function App() {
     // Определяем текущий этап регистрации (только 2 шага)
     const getRegistrationSteps = () => {
       const steps = [];
+      
+      // Отладочная информация
+      console.log('Debug - userInfo:', userInfo);
+      console.log('Debug - isPrivacyConsentGiven:', userInfo.isPrivacyConsentGiven);
+      console.log('Debug - isPhoneConfirmed:', userInfo.isPhoneConfirmed);
       
       // Этап 1: Согласие с политикой конфиденциальности
       const privacyStep = {

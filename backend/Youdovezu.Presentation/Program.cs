@@ -19,8 +19,8 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // Настройка JSON сериализации для совместимости с Telegram API
-        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower; // Для snake_case из Telegram API
+        // Настройка JSON сериализации для совместимости с фронтендом
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase; // Для camelCase совместимости с фронтендом
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // Игнорировать регистр для совместимости
         options.JsonSerializerOptions.WriteIndented = true; // Для читаемости в логах
         options.JsonSerializerOptions.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping; // Для корректной обработки Unicode (кириллица)
