@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 import { apiConfig, getInitData, log, initTelegramWebApp } from './config';
+import { getYandexApiKey, YANDEX_CONFIG } from './yandex-config';
 import TelegramWebAppInfo from './components/TelegramWebAppInfo';
 
 // Типы для Telegram WebApp
@@ -20,6 +21,11 @@ declare global {
         colorScheme: string;
         themeParams: any;
       };
+    };
+    ymaps?: {
+      ready: (callback: () => void) => void;
+      suggest: (query: string, options?: any) => Promise<any[]>;
+      SuggestView: new (input: HTMLInputElement, options?: any) => any;
     };
   }
 }
@@ -47,7 +53,90 @@ function App() {
     
     // Проверяем регистрацию пользователя
     checkUserRegistration();
+    
+    // Инициализируем Яндекс.Карты для автодополнения адресов
+    initializeYandexMaps();
   }, []);
+
+  const initializeYandexMaps = () => {
+    // Загружаем скрипт Яндекс.Карт
+    if (!window.ymaps) {
+      const apiKey = getYandexApiKey();
+      const script = document.createElement('script');
+      script.src = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU`;
+      script.onload = () => {
+        if (window.ymaps) {
+          window.ymaps.ready(() => {
+            setupAddressAutocomplete('from-address', 'from-suggestions');
+            setupAddressAutocomplete('to-address', 'to-suggestions');
+          });
+        }
+      };
+      script.onerror = () => {
+        console.error('Ошибка загрузки Яндекс.Карт. Проверьте API ключ.');
+      };
+      document.head.appendChild(script);
+    } else {
+      if (window.ymaps) {
+        window.ymaps.ready(() => {
+          setupAddressAutocomplete('from-address', 'from-suggestions');
+          setupAddressAutocomplete('to-address', 'to-suggestions');
+        });
+      }
+    }
+  };
+
+  const setupAddressAutocomplete = (inputId: string, suggestionsId: string) => {
+    const input = document.getElementById(inputId) as HTMLInputElement;
+    const suggestions = document.getElementById(suggestionsId);
+    
+    if (!input || !suggestions) return;
+
+    // Обработчик изменения текста
+    input.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value;
+      if (value.length > 2 && window.ymaps) {
+        window.ymaps.suggest(value, YANDEX_CONFIG.SUGGEST_OPTIONS).then((result: any) => {
+          if (result.length > 0) {
+            suggestions.innerHTML = '';
+            result.forEach((item: any) => {
+              const div = document.createElement('div');
+              div.className = 'suggestion-item';
+              div.textContent = item.displayName;
+              div.onclick = () => {
+                input.value = item.displayName;
+                suggestions.innerHTML = '';
+                suggestions.style.display = 'none';
+              };
+              suggestions.appendChild(div);
+            });
+            suggestions.style.display = 'block';
+          } else {
+            suggestions.style.display = 'none';
+          }
+        }).catch((error: any) => {
+          console.error('Ошибка получения подсказок:', error);
+          suggestions.style.display = 'none';
+        });
+      } else {
+        suggestions.style.display = 'none';
+      }
+    });
+
+    // Скрываем подсказки при клике вне поля
+    document.addEventListener('click', (e) => {
+      if (!input.contains(e.target as Node) && !suggestions.contains(e.target as Node)) {
+        suggestions.style.display = 'none';
+      }
+    });
+
+    // Скрываем подсказки при потере фокуса
+    input.addEventListener('blur', () => {
+      setTimeout(() => {
+        suggestions.style.display = 'none';
+      }, 200);
+    });
+  };
 
   const checkUserRegistration = async () => {
     try {
@@ -340,9 +429,66 @@ function App() {
           
           <div className="create-trip-content">
             <div className="create-trip-form">
-              <p className="placeholder-text">
-                Форма создания поездки будет добавлена позже
-              </p>
+              <div className="form-group">
+                <label>Откуда:</label>
+                <div className="address-input-container">
+                  <input 
+                    type="text" 
+                    placeholder="Например: Уфа, ул. Ленина, 1" 
+                    className="address-input"
+                    id="from-address"
+                  />
+                  <div className="address-suggestions" id="from-suggestions"></div>
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label>Куда:</label>
+                <div className="address-input-container">
+                  <input 
+                    type="text" 
+                    placeholder="Например: Караидель, ул. Советская, 5" 
+                    className="address-input"
+                    id="to-address"
+                  />
+                  <div className="address-suggestions" id="to-suggestions"></div>
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label>Дата поездки:</label>
+                <input type="date" />
+              </div>
+              
+              <div className="form-group">
+                <label>Время отправления:</label>
+                <input type="time" />
+              </div>
+              
+              <div className="form-group">
+                <label>Цена за место:</label>
+                <input type="number" placeholder="500" />
+                <span className="currency">₽</span>
+              </div>
+              
+              <div className="form-group">
+                <label>Количество свободных мест:</label>
+                <select>
+                  <option value="1">1 место</option>
+                  <option value="2">2 места</option>
+                  <option value="3">3 места</option>
+                  <option value="4">4 места</option>
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label>Комментарий:</label>
+                <textarea placeholder="Дополнительная информация о поездке..."></textarea>
+              </div>
+              
+              <button className="btn create-trip-btn">
+                🚙 Создать поездку
+              </button>
             </div>
           </div>
         </div>
