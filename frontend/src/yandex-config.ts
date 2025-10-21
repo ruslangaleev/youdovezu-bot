@@ -5,15 +5,8 @@ export const YANDEX_CONFIG = {
   
   // Границы для поиска (Башкортостан)
   BOUNDS: {
-    southWest: [53.0, 54.0],
-    northEast: [56.0, 60.0]
-  },
-  
-  // Настройки автодополнения
-  SUGGEST_OPTIONS: {
-    boundedBy: [[53.0, 54.0], [56.0, 60.0]],
-    strictBounds: false,
-    results: 5
+    southWest: [51.0, 53.0], // юго-запад
+    northEast: [56.5, 60.0]  // северо-восток
   }
 };
 

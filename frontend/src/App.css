@@ -445,6 +445,33 @@
   box-shadow: 0 8px 25px rgba(39, 174, 96, 0.3);
 }
 
+/* Стили для страницы ошибки */
+.error-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.test-mode-btn {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.test-mode-notice {
+  margin-top: 15px;
+  padding: 10px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.test-mode-notice p {
+  color: #856404;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
 /* Стили для автодополнения адресов */
 .address-input-container {
   position: relative;
@@ -463,6 +490,35 @@
 .address-input:focus {
   outline: none;
   border-color: #667eea;
+}
+
+.clear-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  transition: background-color 0.2s;
+  z-index: 10;
+}
+
+.clear-btn:hover {
+  background: #c82333;
+}
+
+.clear-btn:active {
+  background: #bd2130;
 }
 
 .address-suggestions {
@@ -496,6 +552,29 @@
 
 .suggestion-item:last-child {
   border-bottom: none;
+}
+
+.show-on-map-btn {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+
+.show-on-map-btn:hover {
+  background: #0056b3;
+}
+
+.show-on-map-btn:active {
+  background: #004085;
 }
 
 /* Стили для страницы создания поездки */
