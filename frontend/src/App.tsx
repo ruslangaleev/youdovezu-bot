@@ -31,7 +31,7 @@ function App() {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<'main' | 'search' | 'offer'>('main');
+  const [currentView, setCurrentView] = useState<'main' | 'search' | 'offer' | 'create-trip'>('main');
   const [isTelegramWebApp, setIsTelegramWebApp] = useState(false);
 
   useEffect(() => {
@@ -113,6 +113,10 @@ function App() {
 
   const handleBackToMain = () => {
     setCurrentView('main');
+  };
+
+  const handleCreateNewTrip = () => {
+    setCurrentView('create-trip');
   };
 
   if (loading) {
@@ -219,7 +223,7 @@ function App() {
     );
   }
 
-  // Страница поиска поездок
+  // Страница поиска поездок (теперь показывает список поездок пользователя)
   if (currentView === 'search') {
     return (
       <div className="app">
@@ -229,45 +233,25 @@ function App() {
             <button onClick={handleBackToMain} className="back-btn">
               ← Назад
             </button>
-            <h1>🔍 Ищу машину</h1>
+            <h1>🔍 Мои поездки</h1>
           </div>
           
-          <div className="search-content">
-            <div className="search-form">
-              <div className="form-group">
-                <label>Откуда:</label>
-                <input type="text" placeholder="Например: Караидель" />
+          <div className="trips-content">
+            <div className="trips-list">
+              <div className="empty-state">
+                <div className="empty-icon">🚗</div>
+                <h3>У вас пока нет поездок</h3>
+                <p>Создайте первую поездку, чтобы найти попутчиков</p>
               </div>
-              
-              <div className="form-group">
-                <label>Куда:</label>
-                <input type="text" placeholder="Например: Уфа" />
-              </div>
-              
-              <div className="form-group">
-                <label>Дата поездки:</label>
-                <input type="date" />
-              </div>
-              
-              <div className="form-group">
-                <label>Количество пассажиров:</label>
-                <select>
-                  <option value="1">1 пассажир</option>
-                  <option value="2">2 пассажира</option>
-                  <option value="3">3 пассажира</option>
-                  <option value="4">4 пассажира</option>
-                </select>
-              </div>
-              
-              <button className="btn search-btn">
-                🔍 Найти поездки
-              </button>
             </div>
             
-            <div className="search-results">
-              <p className="placeholder-text">
-                Введите параметры поиска для просмотра доступных поездок
-              </p>
+            <div className="trips-actions">
+              <button 
+                className="btn create-trip-btn"
+                onClick={handleCreateNewTrip}
+              >
+                ➕ Новая поездка
+              </button>
             </div>
           </div>
         </div>
@@ -334,6 +318,31 @@ function App() {
               <button className="btn offer-btn">
                 🚙 Создать поездку
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Страница создания новой поездки
+  if (currentView === 'create-trip') {
+    return (
+      <div className="app">
+        <TelegramWebAppInfo isTelegramWebApp={isTelegramWebApp} />
+        <div className="page-container">
+          <div className="page-header">
+            <button onClick={() => setCurrentView('search')} className="back-btn">
+              ← Назад
+            </button>
+            <h1>➕ Новая поездка</h1>
+          </div>
+          
+          <div className="create-trip-content">
+            <div className="create-trip-form">
+              <p className="placeholder-text">
+                Форма создания поездки будет добавлена позже
+              </p>
             </div>
           </div>
         </div>

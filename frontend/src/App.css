@@ -393,6 +393,70 @@
   font-style: italic;
 }
 
+/* Стили для страницы поездок */
+.trips-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.trips-list {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state {
+  text-align: center;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.empty-state h3 {
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+}
+
+.empty-state p {
+  color: #666;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.trips-actions {
+  text-align: center;
+}
+
+.create-trip-btn {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  font-size: 1.1rem;
+  padding: 15px 30px;
+  border-radius: 12px;
+}
+
+.create-trip-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(39, 174, 96, 0.3);
+}
+
+/* Стили для страницы создания поездки */
+.create-trip-content {
+  padding: 20px 0;
+}
+
+.create-trip-form {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
 /* Адаптивность */
 @media (max-width: 480px) {
   .app {
