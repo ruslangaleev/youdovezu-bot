@@ -1162,8 +1162,7 @@ function App() {
               >
                 {creatingTrip ? (
                   <>
-                    <span className="spinner" style={{display: 'inline-block', width: '16px', height: '16px', marginRight: '8px'}}></span>
-                    Создание...
+                    🔄 Создание...
                   </>
                 ) : (
                   '🚙 Создать поездку'
