@@ -99,6 +99,7 @@ function App() {
     
     // Загружаем поездки при переходе на страницу списка
     if (currentView === 'search') {
+      setLoadingTrips(true); // Устанавливаем загрузку сразу
       loadMyTrips();
     }
   }, [currentView]);
@@ -627,8 +628,6 @@ function App() {
 
   const loadMyTrips = async () => {
     try {
-      setLoadingTrips(true);
-      
       // Получаем initData
       const initData = getInitData();
       if (!initData) {
