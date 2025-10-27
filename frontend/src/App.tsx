@@ -640,17 +640,23 @@ function App() {
       }
 
       console.log('Загрузка списка поездок...');
+      
+      // Добавляем минимальную задержку чтобы спиннер был виден минимум 500мс
+      const minDelay = new Promise(resolve => setTimeout(resolve, 500));
 
-      // Отправляем запрос на сервер
-      const response = await axios.post(
-        `${config.apiBaseUrl}/api/webapp/trips/my?initData=${encodeURIComponent(initData)}`,
-        {},
-        {
-          headers: {
-            'Content-Type': 'application/json'
+      // Отправляем запрос на сервер и дожидаемся минимум 500мс
+      const [response] = await Promise.all([
+        axios.post(
+          `${config.apiBaseUrl}/api/webapp/trips/my?initData=${encodeURIComponent(initData)}`,
+          {},
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            }
           }
-        }
-      );
+        ),
+        minDelay
+      ]);
 
       console.log('Список поездок получен:', response.data);
       
