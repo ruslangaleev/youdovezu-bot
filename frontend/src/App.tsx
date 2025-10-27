@@ -519,6 +519,7 @@ function App() {
   };
 
   const handleSearchTrips = () => {
+    setLoadingTrips(true); // Устанавливаем загрузку сразу при переходе
     setCurrentView('search');
   };
 
@@ -608,6 +609,7 @@ function App() {
       setToFullAddress('');
 
       // Возвращаемся на страницу со списком поездок
+      setLoadingTrips(true); // Показываем загрузку при переходе
       setCurrentView('search');
     } catch (error: any) {
       console.error('Ошибка при создании поездки:', error);
@@ -631,6 +633,7 @@ function App() {
       const initData = getInitData();
       if (!initData) {
         console.error('Не удалось получить данные авторизации');
+        setLoadingTrips(false);
         return;
       }
 
@@ -945,14 +948,16 @@ function App() {
               </div>
             )}
             
-            <div className="trips-actions">
-              <button 
-                className="btn create-trip-btn"
-                onClick={handleCreateNewTrip}
-              >
-                ➕ Новая поездка
-              </button>
+            {!loadingTrips && (
+              <div className="trips-actions">
+                <button 
+                  className="btn create-trip-btn"
+                  onClick={handleCreateNewTrip}
+                >
+                  ➕ Новая поездка
+                </button>
             </div>
+            )}
           </div>
         </div>
       </div>
