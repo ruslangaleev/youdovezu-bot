@@ -98,10 +98,11 @@ function App() {
     }
     
     // Загружаем поездки при переходе на страницу списка
-    if (currentView === 'search') {
-      setLoadingTrips(true); // Устанавливаем загрузку сразу
-      loadMyTrips();
-    }
+    // Теперь загрузка происходит напрямую в handleSearchTrips
+    // if (currentView === 'search') {
+    //   setLoadingTrips(true); // Устанавливаем загрузку сразу
+    //   loadMyTrips();
+    // }
   }, [currentView]);
 
   const initializeYandexMaps = () => {
@@ -522,6 +523,7 @@ function App() {
   const handleSearchTrips = () => {
     setLoadingTrips(true); // Устанавливаем загрузку сразу при переходе
     setCurrentView('search');
+    loadMyTrips(); // Сразу начинаем загрузку данных
   };
 
   const handleOfferTrip = () => {
@@ -612,6 +614,7 @@ function App() {
       // Возвращаемся на страницу со списком поездок
       setLoadingTrips(true); // Показываем загрузку при переходе
       setCurrentView('search');
+      loadMyTrips(); // Обновляем список поездок
     } catch (error: any) {
       console.error('Ошибка при создании поездки:', error);
       
