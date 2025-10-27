@@ -22,6 +22,11 @@ public class YoudovezuDbContext : DbContext
     public DbSet<User> Users { get; set; }
 
     /// <summary>
+    /// Поездки (запросы на поездки)
+    /// </summary>
+    public DbSet<Trip> Trips { get; set; }
+
+    /// <summary>
     /// Настройка модели данных при создании контекста
     /// </summary>
     /// <param name="modelBuilder">Построитель модели данных</param>
@@ -44,6 +49,25 @@ public class YoudovezuDbContext : DbContext
             entity.HasIndex(e => e.CanBePassenger);
             entity.HasIndex(e => e.CanBeDriver);
             entity.HasIndex(e => e.SystemRole);
+        });
+
+        // Настройка сущности Trip
+        modelBuilder.Entity<Trip>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+            
+            // Связь с User
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            entity.Property(e => e.Status).HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
     }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
-import { apiConfig, getInitData, log, initTelegramWebApp } from './config';
+import { apiConfig, getInitData, log, initTelegramWebApp, config } from './config';
 import { getYandexApiKey, YANDEX_CONFIG } from './yandex-config';
 import TelegramWebAppInfo from './components/TelegramWebAppInfo';
 
@@ -41,7 +41,6 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<'main' | 'search' | 'offer' | 'create-trip'>('main');
   const [isTelegramWebApp, setIsTelegramWebApp] = useState(false);
-  const [isTestMode, setIsTestMode] = useState(false);
   const [yandexMapsInitialized, setYandexMapsInitialized] = useState(false);
   const [fromAddress, setFromAddress] = useState('');
   const [toAddress, setToAddress] = useState('');
@@ -53,6 +52,9 @@ function App() {
   const [toCoordinates, setToCoordinates] = useState<{lat: number, lon: number} | null>(null);
   const [fromFullAddress, setFromFullAddress] = useState('');
   const [toFullAddress, setToFullAddress] = useState('');
+  const [comment, setComment] = useState('');
+  const [trips, setTrips] = useState<any[]>([]);
+  const [loadingTrips, setLoadingTrips] = useState(false);
 
   useEffect(() => {
     // Инициализируем Telegram WebApp
@@ -92,6 +94,11 @@ function App() {
           setupAddressAutocomplete('to-address', 'to-suggestions');
         }
       }, 100);
+    }
+    
+    // Загружаем поездки при переходе на страницу списка
+    if (currentView === 'search') {
+      loadMyTrips();
     }
   }, [currentView]);
 
@@ -526,6 +533,128 @@ function App() {
     setCurrentView('create-trip');
   };
 
+  const handleSubmitCreateTrip = async () => {
+    try {
+      // Проверяем обязательные поля
+      if (!fromSettlement || !toSettlement) {
+        alert('Пожалуйста, выберите населенные пункты отправления и назначения');
+        return;
+      }
+
+      if (!fromAddress || !toAddress) {
+        alert('Пожалуйста, укажите адреса отправления и назначения');
+        return;
+      }
+
+      // Получаем initData
+      const initData = getInitData();
+      if (!initData) {
+        alert('Не удалось получить данные авторизации');
+        return;
+      }
+
+      // Подготавливаем данные для отправки
+      const tripData = {
+        fromAddress: fromAddress,
+        fromSettlement: fromSettlement,
+        fromLatitude: fromCoordinates?.lat,
+        fromLongitude: fromCoordinates?.lon,
+        toAddress: toAddress,
+        toSettlement: toSettlement,
+        toLatitude: toCoordinates?.lat,
+        toLongitude: toCoordinates?.lon,
+        comment: comment
+      };
+
+      console.log('Отправка поездки на сервер:', tripData);
+
+      // Отправляем запрос на сервер
+      const response = await axios.post(
+        `${config.apiBaseUrl}/api/webapp/trips?initData=${encodeURIComponent(initData)}`, 
+        tripData, 
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('Поездка создана:', response.data);
+
+      // Показываем успешное сообщение
+      if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
+        window.Telegram.WebApp.showAlert('Поездка успешно создана!');
+      } else {
+        alert('Поездка успешно создана!');
+      }
+
+      // Очищаем форму
+      setFromAddress('');
+      setToAddress('');
+      setFromSettlement('');
+      setToSettlement('');
+      setComment('');
+      setFromAddressSelected(false);
+      setToAddressSelected(false);
+      setFromCoordinates(null);
+      setToCoordinates(null);
+      setFromFullAddress('');
+      setToFullAddress('');
+
+      // Возвращаемся на страницу со списком поездок
+      setCurrentView('search');
+    } catch (error: any) {
+      console.error('Ошибка при создании поездки:', error);
+      
+      const errorMessage = error.response?.data?.error || 'Не удалось создать поездку';
+      if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
+        window.Telegram.WebApp.showAlert(errorMessage);
+      } else {
+        alert(errorMessage);
+      }
+    }
+  };
+
+  const loadMyTrips = async () => {
+    try {
+      setLoadingTrips(true);
+      
+      // Получаем initData
+      const initData = getInitData();
+      if (!initData) {
+        console.error('Не удалось получить данные авторизации');
+        return;
+      }
+
+      console.log('Загрузка списка поездок...');
+
+      // Отправляем запрос на сервер
+      const response = await axios.post(
+        `${config.apiBaseUrl}/api/webapp/trips/my?initData=${encodeURIComponent(initData)}`,
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('Список поездок получен:', response.data);
+      
+      // Сохраняем список поездок
+      if (response.data.trips) {
+        setTrips(response.data.trips);
+      }
+    } catch (error: any) {
+      console.error('Ошибка при загрузке поездок:', error);
+      
+      // Не показываем ошибку пользователю, просто очищаем список
+      setTrips([]);
+    } finally {
+      setLoadingTrips(false);
+    }
+  };
+
   const showOnMap = (address: string) => {
     if (!address.trim()) return;
     
@@ -625,7 +754,7 @@ function App() {
         }
         
         // Показываем уведомление
-        if (window.Telegram?.WebApp?.showAlert) {
+        if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
           window.Telegram.WebApp.showAlert(`Адрес определен: ${address}`);
         } else {
           alert(`Адрес определен: ${address}`);
@@ -637,31 +766,6 @@ function App() {
       console.error('Ошибка при геокодировании:', error);
       alert('Ошибка при определении адреса');
     }
-  };
-
-  const enableTestMode = () => {
-    setIsTestMode(true);
-    setError(null);
-    setLoading(false);
-    
-    // Создаем тестовые данные пользователя
-    setUserInfo({
-      isRegistered: true,
-      isPrivacyConsentGiven: true,
-      isPhoneConfirmed: true,
-      user: {
-        firstName: 'Тестовый',
-        lastName: 'Пользователь',
-        username: 'test_user'
-      },
-      capabilities: {
-        canSearchTrips: true,
-        canCreateTrips: true
-      },
-      message: 'Тестовый режим активирован'
-    });
-    
-    console.log('Тестовый режим активирован');
   };
 
   if (loading) {
@@ -684,20 +788,10 @@ function App() {
           <h2>❌ Ошибка</h2>
           <p>{error}</p>
           <div className="error-actions">
-          <button onClick={checkUserRegistration} className="btn">
-            Попробовать снова
-          </button>
-            {!isTestMode && (
-              <button onClick={enableTestMode} className="btn test-mode-btn">
-                🧪 Тестовый режим
-              </button>
-            )}
+            <button onClick={checkUserRegistration} className="btn">
+              Попробовать снова
+            </button>
           </div>
-          {isTestMode && (
-            <div className="test-mode-notice">
-              <p>⚠️ Тестовый режим активен - данные не сохраняются</p>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -794,13 +888,54 @@ function App() {
           </div>
           
           <div className="trips-content">
-            <div className="trips-list">
-              <div className="empty-state">
-                <div className="empty-icon">🚗</div>
-                <h3>У вас пока нет поездок</h3>
-                <p>Создайте первую поездку, чтобы найти попутчиков</p>
+            {loadingTrips ? (
+              <div className="loading">
+                <div className="spinner"></div>
+                <p>Загрузка поездок...</p>
               </div>
-            </div>
+            ) : trips.length === 0 ? (
+              <div className="trips-list">
+                <div className="empty-state">
+                  <div className="empty-icon">🚗</div>
+                  <h3>У вас пока нет поездок</h3>
+                  <p>Создайте первую поездку, чтобы найти попутчиков</p>
+                </div>
+              </div>
+            ) : (
+              <div className="trips-list">
+                {trips.map((trip) => (
+                  <div key={trip.id} className="trip-item">
+                    <div className="trip-route">
+                      <div className="trip-from">
+                        <span className="trip-label">Откуда:</span>
+                        <span className="trip-address">{trip.fromAddress}</span>
+                        <span className="trip-settlement">{trip.fromSettlement}</span>
+                      </div>
+                      <div className="trip-arrow">→</div>
+                      <div className="trip-to">
+                        <span className="trip-label">Куда:</span>
+                        <span className="trip-address">{trip.toAddress}</span>
+                        <span className="trip-settlement">{trip.toSettlement}</span>
+                      </div>
+                    </div>
+                    {trip.comment && (
+                      <div className="trip-comment">
+                        <span className="trip-label">Комментарий:</span>
+                        <span>{trip.comment}</span>
+                      </div>
+                    )}
+                    <div className="trip-info">
+                      <span className="trip-date">
+                        Создано: {new Date(trip.createdAt).toLocaleDateString('ru-RU')}
+                      </span>
+                      <span className={`trip-status trip-status-${trip.status.toLowerCase()}`}>
+                        {trip.status === 'Active' ? 'Активна' : 'Закрыта'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             
             <div className="trips-actions">
               <button 
@@ -1005,10 +1140,17 @@ function App() {
               
               <div className="form-group">
                 <label>Комментарий:</label>
-                <textarea placeholder="Дополнительная информация о поездке..."></textarea>
+                <textarea 
+                  placeholder="Дополнительная информация о поездке..."
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                ></textarea>
               </div>
               
-              <button className="btn create-trip-btn">
+              <button 
+                className="btn create-trip-btn"
+                onClick={handleSubmitCreateTrip}
+              >
                 🚙 Создать поездку
               </button>
             </div>

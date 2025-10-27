@@ -403,13 +403,19 @@
 .trips-list {
   min-height: 200px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .empty-state {
   text-align: center;
   color: #666;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 40px 20px;
 }
 
 .empty-icon {
@@ -427,6 +433,109 @@
   color: #666;
   margin: 0;
   font-size: 0.9rem;
+}
+
+.trip-item {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.trip-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.trip-route {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.trip-from,
+.trip-to {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trip-label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.trip-address {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.trip-settlement {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.trip-arrow {
+  font-size: 1.5rem;
+  color: #667eea;
+  font-weight: bold;
+}
+
+.trip-comment {
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.trip-comment .trip-label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.trip-comment span:not(.trip-label) {
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.trip-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid #e9ecef;
+}
+
+.trip-date {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.trip-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.trip-status-active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.trip-status-closed {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.trip-status-deleted {
+  background: #e2e3e5;
+  color: #495057;
 }
 
 .trips-actions {
@@ -453,25 +562,6 @@
   flex-wrap: wrap;
 }
 
-.test-mode-btn {
-  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
-}
-
-.test-mode-notice {
-  margin-top: 15px;
-  padding: 10px;
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.test-mode-notice p {
-  color: #856404;
-  margin: 0;
-  font-size: 0.9rem;
-}
-
 /* Стили для автодополнения адресов */
 .address-input-container {
   position: relative;
@@ -488,6 +578,27 @@
 }
 
 .address-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.address-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.address-input select {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+.address-input select:focus {
   outline: none;
   border-color: #667eea;
 }
@@ -554,6 +665,19 @@
   border-bottom: none;
 }
 
+.suggestion-address {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.suggestion-full-address {
+  font-size: 0.8rem;
+  color: #666;
+  opacity: 0.8;
+}
+
 .show-on-map-btn {
   margin-top: 8px;
   padding: 8px 12px;
@@ -575,6 +699,30 @@
 
 .show-on-map-btn:active {
   background: #004085;
+}
+
+.location-btn {
+  margin-top: 8px;
+  margin-left: 8px;
+  padding: 8px 12px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+
+.location-btn:hover {
+  background: #1e7e34;
+}
+
+.location-btn:active {
+  background: #155724;
 }
 
 /* Стили для страницы создания поездки */

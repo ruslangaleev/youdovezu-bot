@@ -22,7 +22,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "start:testing": "cross-env REACT_APP_TEST_MODE=true react-scripts start",
+    "start:testing": "copy env.testing .env && react-scripts start",
+    "start:testing:unix": "cp env.testing .env && react-scripts start",
     "build": "react-scripts build",
     "build:testing": "copy env.testing .env && react-scripts build",
     "build:production": "copy env.production .env && react-scripts build",

@@ -18,6 +18,9 @@ export const config = {
   // Настройки для тестирования
   testMode: process.env.REACT_APP_TEST_MODE === 'true',
   
+  // Флаг использования тестового initData (если true, принудительно использует тестовый initData)
+  useTestInitData: process.env.REACT_APP_USE_TEST_INIT_DATA === 'true',
+  
   // Заглушка initData для тестирования (только для разработки)
   testInitData: process.env.REACT_APP_TEST_INIT_DATA || '',
   
@@ -33,6 +36,15 @@ export const config = {
     showMainButton: false
   }
 };
+
+// Логирование конфигурации при загрузке
+console.log('[Config] Loaded configuration:', {
+  apiBaseUrl: config.apiBaseUrl,
+  testMode: config.testMode,
+  useTestInitData: config.useTestInitData,
+  hasTestInitData: !!config.testInitData,
+  testInitDataLength: config.testInitData?.length || 0
+});
 
 // Вспомогательные функции для работы с API
 export const apiConfig = {
@@ -58,24 +70,41 @@ export const log = (...args: any[]) => {
 
 // Функция для получения initData
 export const getInitData = (): string => {
+  // Логируем конфигурацию для отладки
+  console.log('[getInitData] Config:', {
+    useTestInitData: config.useTestInitData,
+    testInitDataLength: config.testInitData?.length || 0,
+    hasTelegramWebApp: !!window.Telegram?.WebApp?.initData
+  });
+  
+  // Если включен флаг принудительного использования тестового initData
+  if (config.useTestInitData && config.testInitData) {
+    console.log('[getInitData] Using test initData from environment variables (forced)');
+    return config.testInitData;
+  }
+  
   // В реальном Telegram WebApp
   if (window.Telegram?.WebApp?.initData) {
+    console.log('[getInitData] Using initData from Telegram WebApp');
     return window.Telegram.WebApp.initData;
   }
   
-  // Для тестирования - используем параметр URL или переменную окружения
+  // Для тестирования - используем параметр URL
   const urlParams = new URLSearchParams(window.location.search);
   const urlInitData = urlParams.get('initData');
   
   if (urlInitData) {
+    console.log('[getInitData] Using initData from URL parameter');
     return urlInitData;
   }
   
-  // Используем переменную окружения для тестирования
+  // Используем переменную окружения для тестирования (fallback)
   if (config.testInitData) {
+    console.log('[getInitData] Using test initData from environment variables (fallback)');
     return config.testInitData;
   }
   
+  console.warn('[getInitData] No initData available!');
   return '';
 };
 

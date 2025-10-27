@@ -95,6 +95,8 @@ builder.Services.AddScoped<ITelegramBotService, TelegramBotService>();
 // Регистрируем репозитории и сервисы
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITripRepository, TripRepository>();
+builder.Services.AddScoped<ITripService, TripService>();
 
 // Регистрируем сервис валидации Telegram WebApp
 builder.Services.AddScoped<TelegramWebAppValidationService>(provider =>
