@@ -549,9 +549,14 @@
   border-radius: 12px;
 }
 
-.create-trip-btn:hover {
+.create-trip-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(39, 174, 96, 0.3);
+}
+
+.create-trip-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Стили для страницы ошибки */

@@ -55,6 +55,7 @@ function App() {
   const [comment, setComment] = useState('');
   const [trips, setTrips] = useState<any[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
+  const [creatingTrip, setCreatingTrip] = useState(false);
 
   useEffect(() => {
     // Инициализируем Telegram WebApp
@@ -535,14 +536,18 @@ function App() {
 
   const handleSubmitCreateTrip = async () => {
     try {
+      setCreatingTrip(true);
+      
       // Проверяем обязательные поля
       if (!fromSettlement || !toSettlement) {
         alert('Пожалуйста, выберите населенные пункты отправления и назначения');
+        setCreatingTrip(false);
         return;
       }
 
       if (!fromAddress || !toAddress) {
         alert('Пожалуйста, укажите адреса отправления и назначения');
+        setCreatingTrip(false);
         return;
       }
 
@@ -550,6 +555,7 @@ function App() {
       const initData = getInitData();
       if (!initData) {
         alert('Не удалось получить данные авторизации');
+        setCreatingTrip(false);
         return;
       }
 
@@ -612,6 +618,8 @@ function App() {
       } else {
         alert(errorMessage);
       }
+    } finally {
+      setCreatingTrip(false);
     }
   };
 
@@ -788,9 +796,9 @@ function App() {
           <h2>❌ Ошибка</h2>
           <p>{error}</p>
           <div className="error-actions">
-            <button onClick={checkUserRegistration} className="btn">
-              Попробовать снова
-            </button>
+          <button onClick={checkUserRegistration} className="btn">
+            Попробовать снова
+          </button>
           </div>
         </div>
       </div>
@@ -932,7 +940,7 @@ function App() {
                         {trip.status === 'Active' ? 'Активна' : 'Закрыта'}
                       </span>
                     </div>
-                  </div>
+              </div>
                 ))}
               </div>
             )}
@@ -1150,8 +1158,16 @@ function App() {
               <button 
                 className="btn create-trip-btn"
                 onClick={handleSubmitCreateTrip}
+                disabled={creatingTrip}
               >
-                🚙 Создать поездку
+                {creatingTrip ? (
+                  <>
+                    <span className="spinner" style={{display: 'inline-block', width: '16px', height: '16px', marginRight: '8px'}}></span>
+                    Создание...
+                  </>
+                ) : (
+                  '🚙 Создать поездку'
+                )}
               </button>
             </div>
           </div>
