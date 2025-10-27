@@ -20,11 +20,14 @@ declare global {
         version: string;
         colorScheme: string;
         themeParams: any;
+        requestLocation: (callback: (location: { latitude: number; longitude: number }) => void) => void;
+        showAlert: (message: string) => void;
+        showConfirm: (message: string, callback: (confirmed: boolean) => void) => void;
       };
     };
     ymaps?: {
       ready: (callback: () => void) => void;
-      geocode: (query: string, options?: any) => Promise<any>;
+      geocode: (query: string | number[], options?: any) => Promise<any>;
     };
   }
 }
@@ -42,6 +45,14 @@ function App() {
   const [yandexMapsInitialized, setYandexMapsInitialized] = useState(false);
   const [fromAddress, setFromAddress] = useState('');
   const [toAddress, setToAddress] = useState('');
+  const [fromSettlement, setFromSettlement] = useState('');
+  const [toSettlement, setToSettlement] = useState('');
+  const [fromAddressSelected, setFromAddressSelected] = useState(false);
+  const [toAddressSelected, setToAddressSelected] = useState(false);
+  const [fromCoordinates, setFromCoordinates] = useState<{lat: number, lon: number} | null>(null);
+  const [toCoordinates, setToCoordinates] = useState<{lat: number, lon: number} | null>(null);
+  const [fromFullAddress, setFromFullAddress] = useState('');
+  const [toFullAddress, setToFullAddress] = useState('');
 
   useEffect(() => {
     // Инициализируем Telegram WebApp
@@ -175,11 +186,17 @@ function App() {
       const value = (e.target as HTMLInputElement).value;
       console.log(`Ввод в ${inputId}: "${value}"`);
       
-      // Обновляем состояние при ручном вводе
+      // Обновляем состояние при ручном вводе и сбрасываем флаги выбора
       if (inputId === 'from-address') {
         setFromAddress(value);
+        setFromFullAddress('');
+        setFromAddressSelected(false);
+        setFromCoordinates(null);
       } else if (inputId === 'to-address') {
         setToAddress(value);
+        setToFullAddress('');
+        setToAddressSelected(false);
+        setToCoordinates(null);
       }
       
       // Очищаем предыдущий таймер
@@ -192,9 +209,23 @@ function App() {
         timeoutId = setTimeout(() => {
           console.log('Отправляем запрос к Яндекс.Картам через geocode...');
           
+          // Получаем населенный пункт НАПРЯМУЮ из DOM, чтобы получить актуальное значение
+          const settlementInput = document.getElementById(inputId === 'from-address' ? 'from-settlement' : 'to-settlement') as HTMLSelectElement;
+          const settlement = settlementInput ? settlementInput.value : '';
+          
+          console.log(`Населенный пункт (${inputId}):`, settlement);
+          console.log(`Введенное значение:`, value);
+          
+          // Формируем полный адрес для поиска
+          const fullAddress = settlement ? `${settlement}, ${value}` : value;
+          
+          console.log('Полный адрес для поиска:', fullAddress);
+          console.log('=== ОТПРАВКА В ГЕОКОДЕР ===');
+          console.log('Текст запроса:', fullAddress);
+          
           try {
             if (window.ymaps) {
-              window.ymaps.geocode(value, {
+              window.ymaps.geocode(fullAddress, {
                 boundedBy: [
                   [51.0, 53.0], // юго-запад Башкортостана
                   [56.5, 60.0]  // северо-восток Башкортостана
@@ -203,6 +234,36 @@ function App() {
                 results: 5
               }).then((result: any) => {
               console.log('Результат от Яндекс.Карт:', result);
+              
+              // Логируем все свойства результата
+              if (result && result.geoObjects) {
+                const geoObjects = result.geoObjects.toArray();
+                if (geoObjects.length > 0) {
+                  console.log('=== СВОЙСТВА ОБЪЕКТОВ ОТ ГЕОКОДЕРА ===');
+                  geoObjects.forEach((item: any, index: number) => {
+                    console.log(`\n--- Объект ${index + 1} ---`);
+                    const addressLine = item.getAddressLine ? item.getAddressLine() : 'N/A';
+                    const coordinates = item.geometry?.getCoordinates ? item.geometry.getCoordinates() : 'N/A';
+                    const name = item.properties?.get ? item.properties.get('name') : 'N/A';
+                    const kind = item.properties?.get ? item.properties.get('kind') : 'N/A';
+                    const text = item.properties?.get ? item.properties.get('text') : 'N/A';
+                    
+                    console.log('addressLine:', addressLine);
+                    console.log('coordinates:', coordinates);
+                    console.log('name:', name);
+                    console.log('kind:', kind);
+                    console.log('text:', text);
+                    
+                    // Логируем metaDataProperty.GeocoderMetaData.Address.Components
+                    const geocoderMetaData = item.properties?.get ? item.properties.get('GeocoderMetaData') : null;
+                    if (geocoderMetaData && geocoderMetaData.Address && geocoderMetaData.Address.Components) {
+                      console.log('Address Components:', geocoderMetaData.Address.Components);
+                    }
+                    
+                    console.log('Все свойства properties:', item.properties?.getAll ? item.properties.getAll() : 'N/A');
+                  });
+                }
+              }
               
               try {
                 if (result && result.geoObjects && typeof result.geoObjects.toArray === 'function') {
@@ -266,16 +327,64 @@ function App() {
                           if (hasSpecificDetails) {
                             const div = document.createElement('div');
                             div.className = 'suggestion-item';
-                            div.textContent = addressLine;
+                            
+                            // Получаем координаты объекта
+                            const coordinates = item.geometry.getCoordinates();
+                            const lat = coordinates[0];
+                            const lon = coordinates[1];
+                            
+                            // Получаем свойства от геокодера
+                            const name = item.properties?.get ? item.properties.get('name') : addressLine;
+                            const text = item.properties?.get ? item.properties.get('text') : '';
+                            
+                            // Отображаем name как заголовок (выделенный, сверху)
+                            const addressDiv = document.createElement('div');
+                            addressDiv.className = 'suggestion-address';
+                            addressDiv.textContent = name;
+                            div.appendChild(addressDiv);
+                            
+                            // Отображаем text как описание (менее выделенное, внизу)
+                            if (text) {
+                              const textDiv = document.createElement('div');
+                              textDiv.className = 'suggestion-full-address';
+                              textDiv.textContent = text;
+                              div.appendChild(textDiv);
+                            }
+                            
                             div.onclick = () => {
+                              console.log('=== ВЫБОР АДРЕСА ===');
                               console.log('Выбран адрес:', addressLine);
-                              input.value = addressLine;
+                              console.log('Координаты:', { lat, lon });
                               
-                              // Сохраняем адрес в состояние в зависимости от поля
+                              // Получаем name и text
+                              const name = item.properties?.get ? item.properties.get('name') : addressLine;
+                              const text = item.properties?.get ? item.properties.get('text') : '';
+                              
+                              // Сохраняем информацию
+                              const geoObjectInfo = {
+                                name: name,
+                                text: text,
+                                addressLine: addressLine,
+                                latitude: lat,
+                                longitude: lon,
+                                coordinates: [lat, lon]
+                              };
+                              console.log('=== ИНФОРМАЦИЯ ОТ ГЕОКОДЕРА (для фронта) ===');
+                              console.log(JSON.stringify(geoObjectInfo, null, 2));
+                              
+                              input.value = name;
+                              
+                              // Сохраняем адрес в состояние в зависимости от поля и устанавливаем флаги
                               if (inputId === 'from-address') {
-                                setFromAddress(addressLine);
+                                setFromAddress(name);
+                                setFromFullAddress(text || addressLine); // Сохраняем полный адрес для открытия на карте
+                                setFromAddressSelected(true);
+                                setFromCoordinates({ lat, lon });
                               } else if (inputId === 'to-address') {
-                                setToAddress(addressLine);
+                                setToAddress(name);
+                                setToFullAddress(text || addressLine); // Сохраняем полный адрес для открытия на карте
+                                setToAddressSelected(true);
+                                setToCoordinates({ lat, lon });
                               }
                               
                               suggestions.innerHTML = '';
@@ -431,6 +540,9 @@ function App() {
   const clearAddress = (field: 'from' | 'to') => {
     if (field === 'from') {
       setFromAddress('');
+      setFromFullAddress('');
+      setFromAddressSelected(false);
+      setFromCoordinates(null);
       const input = document.getElementById('from-address') as HTMLInputElement;
       if (input) {
         input.value = '';
@@ -443,6 +555,9 @@ function App() {
       }
     } else if (field === 'to') {
       setToAddress('');
+      setToFullAddress('');
+      setToAddressSelected(false);
+      setToCoordinates(null);
       const input = document.getElementById('to-address') as HTMLInputElement;
       if (input) {
         input.value = '';
@@ -453,6 +568,74 @@ function App() {
           input.setSelectionRange(length, length);
         }, 0);
       }
+    }
+  };
+
+  // Функция для запроса геолокации через Telegram WebApp
+  const requestCurrentLocation = (field: 'from' | 'to') => {
+    if (!isTelegramWebApp || !window.Telegram?.WebApp) {
+      alert('Геолокация доступна только в Telegram WebApp');
+      return;
+    }
+
+    try {
+      window.Telegram.WebApp.requestLocation((location) => {
+        console.log('Получена геолокация:', location);
+        
+        // Конвертируем координаты в адрес через Яндекс.Карты
+        convertCoordinatesToAddress(location.latitude, location.longitude, field);
+      });
+    } catch (error) {
+      console.error('Ошибка при запросе геолокации:', error);
+      alert('Не удалось получить местоположение');
+    }
+  };
+
+  // Функция для конвертации координат в адрес
+  const convertCoordinatesToAddress = async (lat: number, lon: number, field: 'from' | 'to') => {
+    if (!window.ymaps) {
+      alert('Яндекс.Карты не загружены');
+      return;
+    }
+
+    try {
+      const result = await window.ymaps.geocode([lat, lon], {
+        results: 1
+      });
+
+      if (result.geoObjects.getLength() > 0) {
+        const geoObject = result.geoObjects.get(0);
+        const address = geoObject.getAddressLine();
+        
+        console.log('Адрес по координатам:', address);
+        
+        // Устанавливаем адрес в соответствующее поле
+        if (field === 'from') {
+          setFromAddress(address);
+          const input = document.getElementById('from-address') as HTMLInputElement;
+          if (input) {
+            input.value = address;
+          }
+        } else if (field === 'to') {
+          setToAddress(address);
+          const input = document.getElementById('to-address') as HTMLInputElement;
+          if (input) {
+            input.value = address;
+          }
+        }
+        
+        // Показываем уведомление
+        if (window.Telegram?.WebApp?.showAlert) {
+          window.Telegram.WebApp.showAlert(`Адрес определен: ${address}`);
+        } else {
+          alert(`Адрес определен: ${address}`);
+        }
+      } else {
+        alert('Не удалось определить адрес по координатам');
+      }
+    } catch (error) {
+      console.error('Ошибка при геокодировании:', error);
+      alert('Ошибка при определении адреса');
     }
   };
 
@@ -715,17 +898,30 @@ function App() {
           <div className="create-trip-content">
             <div className="create-trip-form">
               <div className="form-group">
-                <label>Откуда:</label>
+                <label>Населенный пункт (Откуда):</label>
+                <select 
+                  className="address-input"
+                  id="from-settlement"
+                  value={fromSettlement}
+                  onChange={(e) => setFromSettlement(e.target.value)}
+                >
+                  <option value="">Выберите населенный пункт</option>
+                  <option value="Караидель">Караидель</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Адрес (Откуда):</label>
                 <div className="address-input-container">
                   <input 
                     type="text" 
-                    placeholder="Например: Уфа, ул. Ленина, 1" 
+                    placeholder={fromSettlement ? "Например: ул. Ленина, 1" : "Сначала выберите населенный пункт"}
                     className="address-input"
                     id="from-address"
                     value={fromAddress}
                     onChange={(e) => setFromAddress(e.target.value)}
+                    disabled={!fromSettlement}
                     onFocus={(e) => {
-                      // Смещаем курсор в конец при фокусе
                       setTimeout(() => {
                         const length = e.target.value.length;
                         e.target.setSelectionRange(length, length);
@@ -743,10 +939,10 @@ function App() {
                   )}
                   <div className="address-suggestions" id="from-suggestions"></div>
                 </div>
-                {fromAddress && (
+                {fromAddressSelected && (
                   <button 
                     className="show-on-map-btn"
-                    onClick={() => showOnMap(fromAddress)}
+                    onClick={() => showOnMap(fromFullAddress)}
                     title="Показать на Яндекс.Картах"
                   >
                     🗺️ Показать на карте
@@ -755,17 +951,30 @@ function App() {
               </div>
               
               <div className="form-group">
-                <label>Куда:</label>
+                <label>Населенный пункт (Куда):</label>
+                <select 
+                  className="address-input"
+                  id="to-settlement"
+                  value={toSettlement}
+                  onChange={(e) => setToSettlement(e.target.value)}
+                >
+                  <option value="">Выберите населенный пункт</option>
+                  <option value="Караидель">Караидель</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Адрес (Куда):</label>
                 <div className="address-input-container">
                   <input 
                     type="text" 
-                    placeholder="Например: Караидель, ул. Советская, 5" 
+                    placeholder={toSettlement ? "Например: ул. Советская, 5" : "Сначала выберите населенный пункт"}
                     className="address-input"
                     id="to-address"
                     value={toAddress}
                     onChange={(e) => setToAddress(e.target.value)}
+                    disabled={!toSettlement}
                     onFocus={(e) => {
-                      // Смещаем курсор в конец при фокусе
                       setTimeout(() => {
                         const length = e.target.value.length;
                         e.target.setSelectionRange(length, length);
@@ -783,10 +992,10 @@ function App() {
                   )}
                   <div className="address-suggestions" id="to-suggestions"></div>
                 </div>
-                {toAddress && (
+                {toAddressSelected && (
                   <button 
                     className="show-on-map-btn"
-                    onClick={() => showOnMap(toAddress)}
+                    onClick={() => showOnMap(toFullAddress)}
                     title="Показать на Яндекс.Картах"
                   >
                     🗺️ Показать на карте
