@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Hosting;
 using Youdovezu.Application.Interfaces;
 using Youdovezu.Domain.Entities;
 using Youdovezu.Infrastructure.Services;
@@ -14,22 +15,34 @@ public class WebAppController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly ITripService _tripService;
+    private readonly IDriverDocumentsService _driverDocumentsService;
     private readonly TelegramWebAppValidationService _validationService;
     private readonly ILogger<WebAppController> _logger;
+    private readonly IWebHostEnvironment _environment;
 
     /// <summary>
     /// Конструктор контроллера
     /// </summary>
     /// <param name="userService">Сервис для работы с пользователями</param>
     /// <param name="tripService">Сервис для работы с поездками</param>
+    /// <param name="driverDocumentsService">Сервис для работы с документами водителя</param>
     /// <param name="validationService">Сервис для проверки initData</param>
     /// <param name="logger">Логгер для записи событий</param>
-    public WebAppController(IUserService userService, ITripService tripService, TelegramWebAppValidationService validationService, ILogger<WebAppController> logger)
+    /// <param name="environment">Окружение приложения</param>
+    public WebAppController(
+        IUserService userService, 
+        ITripService tripService, 
+        IDriverDocumentsService driverDocumentsService,
+        TelegramWebAppValidationService validationService, 
+        ILogger<WebAppController> logger,
+        IWebHostEnvironment environment)
     {
         _userService = userService;
         _tripService = tripService;
+        _driverDocumentsService = driverDocumentsService;
         _validationService = validationService;
         _logger = logger;
+        _environment = environment;
     }
 
     /// <summary>
@@ -482,6 +495,216 @@ public class WebAppController : ControllerBase
             _logger.LogError(ex, "Error deleting trip");
             return StatusCode(500, new { error = "Внутренняя ошибка сервера" });
         }
+    }
+
+    /// <summary>
+    /// Получает статус проверки документов водителя
+    /// </summary>
+    /// <param name="initData">Telegram WebApp initData</param>
+    /// <returns>Статус проверки документов</returns>
+    [HttpPost("driver-documents/status")]
+    public async Task<IActionResult> GetDriverDocumentsStatus([FromQuery] string initData)
+    {
+        try
+        {
+            // Проверяем подлинность initData
+            if (!_validationService.ValidateInitData(initData))
+            {
+                _logger.LogWarning("Invalid initData provided for driver documents status");
+                return Unauthorized(new { error = "Неверные данные авторизации" });
+            }
+
+            // Извлекаем Telegram ID из initData
+            var telegramId = _validationService.ExtractTelegramId(initData);
+            if (!telegramId.HasValue)
+            {
+                _logger.LogWarning("Could not extract Telegram ID from initData for driver documents status");
+                return BadRequest(new { error = "Не удалось определить пользователя" });
+            }
+
+            // Получаем пользователя
+            var user = await _userService.GetUserByTelegramIdAsync(telegramId.Value);
+            if (user == null)
+            {
+                return Unauthorized(new { error = "Пользователь не найден" });
+            }
+
+            var documents = await _driverDocumentsService.GetUserDocumentsAsync(user.Id);
+
+            if (documents == null)
+            {
+                return Ok(new
+                {
+                    status = "not_submitted",
+                    message = "Документы не отправлены"
+                });
+            }
+
+            return Ok(new
+            {
+                status = documents.Status.ToString(),
+                statusName = GetStatusName(documents.Status),
+                submittedAt = documents.SubmittedAt,
+                verifiedAt = documents.VerifiedAt,
+                adminComment = documents.AdminComment
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting driver documents status");
+            return StatusCode(500, new { error = "Внутренняя ошибка сервера" });
+        }
+    }
+
+    /// <summary>
+    /// Загружает документы водителя
+    /// </summary>
+    /// <param name="initData">Telegram WebApp initData</param>
+    /// <param name="driverLicenseFront">Фото водительского удостоверения (лицевая сторона)</param>
+    /// <param name="driverLicenseBack">Фото водительского удостоверения (обратная сторона)</param>
+    /// <param name="vehicleRegistrationFront">Фото СТС (лицевая сторона)</param>
+    /// <param name="vehicleRegistrationBack">Фото СТС (обратная сторона)</param>
+    /// <param name="avatar">Аватарка пользователя</param>
+    /// <returns>Результат загрузки</returns>
+    [HttpPost("driver-documents/upload")]
+    public async Task<IActionResult> UploadDriverDocuments(
+        [FromQuery] string initData,
+        IFormFile? driverLicenseFront,
+        IFormFile? driverLicenseBack,
+        IFormFile? vehicleRegistrationFront,
+        IFormFile? vehicleRegistrationBack,
+        IFormFile? avatar)
+    {
+        try
+        {
+            // Проверяем подлинность initData
+            if (!_validationService.ValidateInitData(initData))
+            {
+                _logger.LogWarning("Invalid initData provided for driver documents upload");
+                return Unauthorized(new { error = "Неверные данные авторизации" });
+            }
+
+            // Извлекаем Telegram ID из initData
+            var telegramId = _validationService.ExtractTelegramId(initData);
+            if (!telegramId.HasValue)
+            {
+                _logger.LogWarning("Could not extract Telegram ID from initData for driver documents upload");
+                return BadRequest(new { error = "Не удалось определить пользователя" });
+            }
+
+            // Получаем пользователя
+            var user = await _userService.GetUserByTelegramIdAsync(telegramId.Value);
+            if (user == null)
+            {
+                return Unauthorized(new { error = "Пользователь не найден" });
+            }
+
+            // Создаем директорию для хранения файлов
+            var uploadsPath = Path.Combine(_environment.ContentRootPath, "uploads", "driver-documents", user.Id.ToString());
+            if (!Directory.Exists(uploadsPath))
+            {
+                Directory.CreateDirectory(uploadsPath);
+            }
+
+            string? driverLicenseFrontPath = null;
+            string? driverLicenseBackPath = null;
+            string? vehicleRegistrationFrontPath = null;
+            string? vehicleRegistrationBackPath = null;
+            string? avatarPath = null;
+
+            // Сохраняем файлы
+            if (driverLicenseFront != null && driverLicenseFront.Length > 0)
+            {
+                var fileName = $"driver_license_front_{DateTime.UtcNow.Ticks}{Path.GetExtension(driverLicenseFront.FileName)}";
+                var filePath = Path.Combine(uploadsPath, fileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await driverLicenseFront.CopyToAsync(stream);
+                }
+                driverLicenseFrontPath = Path.Combine("uploads", "driver-documents", user.Id.ToString(), fileName);
+            }
+
+            if (driverLicenseBack != null && driverLicenseBack.Length > 0)
+            {
+                var fileName = $"driver_license_back_{DateTime.UtcNow.Ticks}{Path.GetExtension(driverLicenseBack.FileName)}";
+                var filePath = Path.Combine(uploadsPath, fileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await driverLicenseBack.CopyToAsync(stream);
+                }
+                driverLicenseBackPath = Path.Combine("uploads", "driver-documents", user.Id.ToString(), fileName);
+            }
+
+            if (vehicleRegistrationFront != null && vehicleRegistrationFront.Length > 0)
+            {
+                var fileName = $"vehicle_registration_front_{DateTime.UtcNow.Ticks}{Path.GetExtension(vehicleRegistrationFront.FileName)}";
+                var filePath = Path.Combine(uploadsPath, fileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await vehicleRegistrationFront.CopyToAsync(stream);
+                }
+                vehicleRegistrationFrontPath = Path.Combine("uploads", "driver-documents", user.Id.ToString(), fileName);
+            }
+
+            if (vehicleRegistrationBack != null && vehicleRegistrationBack.Length > 0)
+            {
+                var fileName = $"vehicle_registration_back_{DateTime.UtcNow.Ticks}{Path.GetExtension(vehicleRegistrationBack.FileName)}";
+                var filePath = Path.Combine(uploadsPath, fileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await vehicleRegistrationBack.CopyToAsync(stream);
+                }
+                vehicleRegistrationBackPath = Path.Combine("uploads", "driver-documents", user.Id.ToString(), fileName);
+            }
+
+            if (avatar != null && avatar.Length > 0)
+            {
+                var fileName = $"avatar_{DateTime.UtcNow.Ticks}{Path.GetExtension(avatar.FileName)}";
+                var filePath = Path.Combine(uploadsPath, fileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await avatar.CopyToAsync(stream);
+                }
+                avatarPath = Path.Combine("uploads", "driver-documents", user.Id.ToString(), fileName);
+            }
+
+            // Сохраняем информацию о документах в базу данных
+            var documents = await _driverDocumentsService.SubmitDocumentsAsync(
+                user.Id,
+                driverLicenseFrontPath,
+                driverLicenseBackPath,
+                vehicleRegistrationFrontPath,
+                vehicleRegistrationBackPath,
+                avatarPath);
+
+            _logger.LogInformation("Driver documents uploaded for user {TelegramId}", telegramId.Value);
+
+            return Ok(new
+            {
+                id = documents.Id,
+                status = documents.Status.ToString(),
+                statusName = GetStatusName(documents.Status),
+                message = "Документы успешно отправлены на проверку",
+                submittedAt = documents.SubmittedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading driver documents");
+            return StatusCode(500, new { error = "Внутренняя ошибка сервера" });
+        }
+    }
+
+    private string GetStatusName(Domain.Entities.DocumentVerificationStatus status)
+    {
+        return status switch
+        {
+            Domain.Entities.DocumentVerificationStatus.Pending => "Ожидает проверки",
+            Domain.Entities.DocumentVerificationStatus.UnderReview => "На проверке",
+            Domain.Entities.DocumentVerificationStatus.Approved => "Одобрено",
+            Domain.Entities.DocumentVerificationStatus.Rejected => "Отклонено",
+            _ => "Неизвестно"
+        };
     }
 }
 

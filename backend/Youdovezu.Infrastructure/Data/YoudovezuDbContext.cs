@@ -27,6 +27,11 @@ public class YoudovezuDbContext : DbContext
     public DbSet<Trip> Trips { get; set; }
 
     /// <summary>
+    /// Документы водителей
+    /// </summary>
+    public DbSet<DriverDocuments> DriverDocuments { get; set; }
+
+    /// <summary>
     /// Настройка модели данных при создании контекста
     /// </summary>
     /// <param name="modelBuilder">Построитель модели данных</param>
@@ -58,6 +63,23 @@ public class YoudovezuDbContext : DbContext
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
+            
+            // Связь с User
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            entity.Property(e => e.Status).HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+
+        // Настройка сущности DriverDocuments
+        modelBuilder.Entity<DriverDocuments>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UserId).IsUnique();
             
             // Связь с User
             entity.HasOne(e => e.User)

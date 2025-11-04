@@ -97,6 +97,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITripRepository, TripRepository>();
 builder.Services.AddScoped<ITripService, TripService>();
+builder.Services.AddScoped<Youdovezu.Domain.Interfaces.IDriverDocumentsRepository, DriverDocumentsRepository>();
+builder.Services.AddScoped<IDriverDocumentsService, DriverDocumentsService>();
 
 // Регистрируем сервис валидации Telegram WebApp
 builder.Services.AddScoped<TelegramWebAppValidationService>(provider =>

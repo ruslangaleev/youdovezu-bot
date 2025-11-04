@@ -83,13 +83,20 @@ export const getInitData = (): string => {
     return config.testInitData;
   }
   
+  // Если флаг useTestInitData === false, используем только реальный Telegram WebApp
   // В реальном Telegram WebApp
   if (window.Telegram?.WebApp?.initData) {
     console.log('[getInitData] Using initData from Telegram WebApp');
     return window.Telegram.WebApp.initData;
   }
   
-  // Для тестирования - используем параметр URL
+  // Если useTestInitData === false и нет реального Telegram WebApp, возвращаем пустую строку
+  if (!config.useTestInitData) {
+    console.warn('[getInitData] useTestInitData is false and no Telegram WebApp initData available!');
+    return '';
+  }
+  
+  // Для тестирования - используем параметр URL (только если useTestInitData === true)
   const urlParams = new URLSearchParams(window.location.search);
   const urlInitData = urlParams.get('initData');
   
@@ -98,7 +105,7 @@ export const getInitData = (): string => {
     return urlInitData;
   }
   
-  // Используем переменную окружения для тестирования (fallback)
+  // Используем переменную окружения для тестирования (fallback, только если useTestInitData === true)
   if (config.testInitData) {
     console.log('[getInitData] Using test initData from environment variables (fallback)');
     return config.testInitData;
@@ -121,6 +128,9 @@ export const initTelegramWebApp = () => {
     if (config.telegramWebApp.showCloseButton) {
       tg.enableClosingConfirmation();
     }
+    
+    // Отключи свайпы для закрытия
+    tg.disableVerticalSwipes();
     
     // Настройка темы
     tg.ready();
