@@ -61,4 +61,10 @@ public interface IUserService
     /// <param name="systemRole">Новая системная роль</param>
     /// <returns>Обновленный пользователь</returns>
     Task<User> UpdateSystemRoleAsync(long telegramId, SystemRole systemRole);
+
+    /// <summary>
+    /// Получает всех администраторов
+    /// </summary>
+    /// <returns>Список администраторов</returns>
+    Task<List<User>> GetAllAdminsAsync();
 }

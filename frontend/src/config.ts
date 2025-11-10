@@ -49,8 +49,8 @@ console.log('[Config] Loaded configuration:', {
 // Вспомогательные функции для работы с API
 export const apiConfig = {
   // Полный URL для API endpoints
-  getUserInfo: () => `${config.apiBaseUrl}/api/webapp/user`,
-  getRegistrationStatus: () => `${config.apiBaseUrl}/api/webapp/registration-status`,
+  getUserInfo: () => `${config.apiBaseUrl}/api/webapp/users/info`,
+  getRegistrationStatus: () => `${config.apiBaseUrl}/api/webapp/users/registration-status`,
   
   // Настройки для axios
   axiosConfig: {

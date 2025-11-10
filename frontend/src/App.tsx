@@ -8,6 +8,8 @@ import { CreateTrip } from './components/CreateTrip';
 import { EditTrip } from './components/EditTrip';
 import { UploadDocuments } from './components/UploadDocuments';
 import { DocumentVerification } from './components/DocumentVerification';
+import { ModerationList } from './components/ModerationList';
+import { ModerationDetail } from './components/ModerationDetail';
 
 // Типы для Telegram WebApp
 declare global {
@@ -44,7 +46,9 @@ function App() {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<'main' | 'search' | 'offer' | 'create-trip' | 'edit-trip' | 'upload-documents' | 'document-verification'>('main');
+  const [currentView, setCurrentView] = useState<'main' | 'search' | 'offer' | 'create-trip' | 'edit-trip' | 'upload-documents' | 'document-verification' | 'moderation-list' | 'moderation-detail' | 'trip-search' | 'trip-details'>('main');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedDocumentsId, setSelectedDocumentsId] = useState<number | null>(null);
   const [isTelegramWebApp, setIsTelegramWebApp] = useState(false);
   const [yandexMapsInitialized, setYandexMapsInitialized] = useState(false);
   const [fromAddress, setFromAddress] = useState('');
@@ -64,6 +68,18 @@ function App() {
   const [editingTripId, setEditingTripId] = useState<number | null>(null);
   const [updatingTrip, setUpdatingTrip] = useState(false);
   const [deletingTripId, setDeletingTripId] = useState<number | null>(null);
+  const [settlements, setSettlements] = useState<Array<{id: number, name: string, type: string, tripsCount: number}>>([]);
+  const [loadingSettlements, setLoadingSettlements] = useState(false);
+  const [selectedSettlement, setSelectedSettlement] = useState<string | null>(null);
+  const [tripOffers, setTripOffers] = useState<any[]>([]);
+  const [loadingTripOffers, setLoadingTripOffers] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState<any | null>(null);
+  const [tripDetails, setTripDetails] = useState<any | null>(null);
+  const [loadingTripDetails, setLoadingTripDetails] = useState(false);
+  const [offerPrice, setOfferPrice] = useState<string>('');
+  const [offerComment, setOfferComment] = useState<string>('');
+  const [submittingOffer, setSubmittingOffer] = useState(false);
+  const [existingOffer, setExistingOffer] = useState<any | null>(null);
 
   useEffect(() => {
     // Инициализируем Telegram WebApp
@@ -78,6 +94,9 @@ function App() {
     
     // Проверяем регистрацию пользователя
     checkUserRegistration();
+    
+    // Проверяем права администратора
+    checkAdminStatus();
     
     // Инициализируем Яндекс.Карты для автодополнения адресов (только один раз)
     if (!yandexMapsInitialized) {
@@ -474,6 +493,24 @@ function App() {
     console.log(`Автодополнение настроено для ${inputId}`);
   };
 
+  const checkAdminStatus = async () => {
+    try {
+      const initData = getInitData();
+      if (!initData) {
+        setIsAdmin(false);
+        return;
+      }
+
+      const response = await axios.post(
+        `${config.apiBaseUrl}/api/webapp/moderation/check-admin?initData=${encodeURIComponent(initData)}`
+      );
+      setIsAdmin(response.data.isAdmin || false);
+    } catch (err: any) {
+      console.error('Error checking admin status:', err);
+      setIsAdmin(false);
+    }
+  };
+
   const checkUserRegistration = async () => {
     try {
       setLoading(true);
@@ -553,8 +590,9 @@ function App() {
         // Документы на проверке - показываем страницу статуса
         setCurrentView('document-verification');
       } else if (response.data.status === 'Approved') {
-        // Документы одобрены - можно показать страницу "Предложить машину"
-    setCurrentView('offer');
+        // Документы одобрены - открываем страницу поиска объявлений (список населенных пунктов)
+        setCurrentView('trip-search');
+        loadSettlements(); // Загружаем список населенных пунктов
       } else {
         // Документы отклонены или другой статус - показываем страницу статуса
         setCurrentView('document-verification');
@@ -563,6 +601,183 @@ function App() {
       // При ошибке показываем страницу загрузки документов
       console.error('Error checking documents status:', err);
       setCurrentView('upload-documents');
+    }
+  };
+
+  const loadSettlements = async () => {
+    try {
+      setLoadingSettlements(true);
+      const initData = getInitData();
+      if (!initData) {
+        console.error('Не удалось получить данные авторизации');
+        setLoadingSettlements(false);
+        return;
+      }
+
+      const response = await axios.post(
+        `${config.apiBaseUrl}/api/webapp/trips/search/settlements?initData=${encodeURIComponent(initData)}`
+      );
+
+      if (response.data) {
+        setSettlements(response.data);
+      }
+    } catch (error: any) {
+      console.error('Ошибка при загрузке населенных пунктов:', error);
+      alert(error.response?.data?.error || 'Не удалось загрузить список населенных пунктов');
+    } finally {
+      setLoadingSettlements(false);
+    }
+  };
+
+  const handleSelectSettlement = async (settlementName: string) => {
+    setSelectedSettlement(settlementName);
+    await loadTripOffers(settlementName);
+  };
+
+  const loadTripOffers = async (settlementName: string) => {
+    try {
+      setLoadingTripOffers(true);
+      const initData = getInitData();
+      if (!initData) {
+        console.error('Не удалось получить данные авторизации');
+        setLoadingTripOffers(false);
+        return;
+      }
+
+      const response = await axios.post(
+        `${config.apiBaseUrl}/api/webapp/trips/search?initData=${encodeURIComponent(initData)}&settlement=${encodeURIComponent(settlementName)}`
+      );
+
+      if (response.data) {
+        // Для каждого объявления проверяем, было ли отправлено предложение
+        const tripsWithOffers = await Promise.all(
+          response.data.map(async (trip: any) => {
+            try {
+              const offerResponse = await axios.post(
+                `${config.apiBaseUrl}/api/webapp/trips/offers/${trip.id}/my?initData=${encodeURIComponent(initData)}`
+              );
+              return {
+                ...trip,
+                hasOffer: offerResponse.data?.hasOffer || false,
+                existingOffer: offerResponse.data?.offer || null
+              };
+            } catch (error: any) {
+              // Если предложения нет, это нормально
+              return {
+                ...trip,
+                hasOffer: false,
+                existingOffer: null
+              };
+            }
+          })
+        );
+        setTripOffers(tripsWithOffers);
+      }
+    } catch (error: any) {
+      console.error('Ошибка при загрузке объявлений:', error);
+      alert(error.response?.data?.error || 'Не удалось загрузить список объявлений');
+    } finally {
+      setLoadingTripOffers(false);
+    }
+  };
+
+  const handleViewTripDetails = async (trip: any) => {
+    setSelectedTrip(trip);
+    setCurrentView('trip-details');
+    await loadTripDetails(trip.id);
+  };
+
+  const loadTripDetails = async (tripId: number) => {
+    try {
+      setLoadingTripDetails(true);
+      const initData = getInitData();
+      if (!initData) {
+        console.error('Не удалось получить данные авторизации');
+        setLoadingTripDetails(false);
+        return;
+      }
+
+      // Загружаем детальную информацию об объявлении
+      const detailsResponse = await axios.post(
+        `${config.apiBaseUrl}/api/webapp/trips/search/${tripId}/details?initData=${encodeURIComponent(initData)}`
+      );
+
+      if (detailsResponse.data) {
+        setTripDetails(detailsResponse.data);
+        setExistingOffer(detailsResponse.data.existingOffer || null);
+      }
+
+      // Проверяем, было ли уже отправлено предложение
+      try {
+        const offerResponse = await axios.post(
+          `${config.apiBaseUrl}/api/webapp/trips/offers/${tripId}/my?initData=${encodeURIComponent(initData)}`
+        );
+
+        if (offerResponse.data?.hasOffer && offerResponse.data?.offer) {
+          setExistingOffer(offerResponse.data.offer);
+        }
+      } catch (error: any) {
+        // Если предложения нет, это нормально
+        console.log('Предложение не найдено');
+      }
+    } catch (error: any) {
+      console.error('Ошибка при загрузке деталей объявления:', error);
+      alert(error.response?.data?.error || 'Не удалось загрузить детальную информацию об объявлении');
+      // Возвращаемся к списку объявлений
+      setCurrentView('trip-search');
+    } finally {
+      setLoadingTripDetails(false);
+    }
+  };
+
+  const handleSubmitOffer = async () => {
+    if (!selectedTrip) {
+      alert('Объявление не выбрано');
+      return;
+    }
+
+    // Валидация
+    const price = parseFloat(offerPrice);
+    if (isNaN(price) || price <= 0) {
+      alert('Пожалуйста, укажите корректную цену (положительное число)');
+      return;
+    }
+
+    try {
+      setSubmittingOffer(true);
+      const initData = getInitData();
+      if (!initData) {
+        alert('Не удалось получить данные авторизации');
+        setSubmittingOffer(false);
+        return;
+      }
+
+      const response = await axios.post(
+        `${config.apiBaseUrl}/api/webapp/trips/offers/${selectedTrip.id}?initData=${encodeURIComponent(initData)}`,
+        {
+          price: price,
+          comment: offerComment.trim() || null
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data) {
+        alert('Предложение успешно отправлено!');
+        setExistingOffer(response.data);
+        setOfferPrice('');
+        setOfferComment('');
+        // Обновляем детальную информацию
+        await loadTripDetails(selectedTrip.id);
+      }
+    } catch (error: any) {
+      console.error('Ошибка при отправке предложения:', error);
+      alert(error.response?.data?.error || 'Не удалось отправить предложение');
+    } finally {
+      setSubmittingOffer(false);
     }
   };
 
@@ -666,11 +881,7 @@ function App() {
       console.log('Поездка обновлена:', response.data);
 
       // Показываем успешное сообщение
-      if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
-        window.Telegram.WebApp.showAlert('Поездка успешно обновлена!');
-      } else {
-        alert('Поездка успешно обновлена!');
-      }
+      alert('Поездка успешно обновлена!');
 
       // Очищаем форму
       setFromAddress('');
@@ -694,11 +905,7 @@ function App() {
       console.error('Ошибка при обновлении поездки:', error);
       
       const errorMessage = error.response?.data?.error || 'Не удалось обновить поездку';
-      if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
-        window.Telegram.WebApp.showAlert(errorMessage);
-      } else {
-        alert(errorMessage);
-      }
+      alert(errorMessage);
     } finally {
       setUpdatingTrip(false);
     }
@@ -748,11 +955,7 @@ function App() {
       console.log('Поездка удалена:', response.data);
 
       // Показываем успешное сообщение
-      if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
-        window.Telegram.WebApp.showAlert('Поездка успешно удалена!');
-      } else {
-        alert('Поездка успешно удалена!');
-      }
+      alert('Поездка успешно удалена!');
 
       // Обновляем список поездок
       setLoadingTrips(true);
@@ -761,11 +964,7 @@ function App() {
       console.error('Ошибка при удалении поездки:', error);
       
       const errorMessage = error.response?.data?.error || 'Не удалось удалить поездку';
-      if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
-        window.Telegram.WebApp.showAlert(errorMessage);
-      } else {
-        alert(errorMessage);
-      }
+      alert(errorMessage);
     } finally {
       setDeletingTripId(null);
     }
@@ -825,11 +1024,7 @@ function App() {
       console.log('Поездка создана:', response.data);
 
       // Показываем успешное сообщение
-      if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
-        window.Telegram.WebApp.showAlert('Поездка успешно создана!');
-      } else {
-        alert('Поездка успешно создана!');
-      }
+      alert('Поездка успешно создана!');
 
       // Очищаем форму
       setFromAddress('');
@@ -852,11 +1047,7 @@ function App() {
       console.error('Ошибка при создании поездки:', error);
       
       const errorMessage = error.response?.data?.error || 'Не удалось создать поездку';
-      if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
-        window.Telegram.WebApp.showAlert(errorMessage);
-      } else {
-        alert(errorMessage);
-      }
+      alert(errorMessage);
     } finally {
       setCreatingTrip(false);
     }
@@ -1006,11 +1197,7 @@ function App() {
         }
         
         // Показываем уведомление
-        if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
-          window.Telegram.WebApp.showAlert(`Адрес определен: ${address}`);
-        } else {
-          alert(`Адрес определен: ${address}`);
-        }
+        alert(`Адрес определен: ${address}`);
       } else {
         alert('Не удалось определить адрес по координатам');
       }
@@ -1226,7 +1413,317 @@ function App() {
     );
   }
 
-  // Страница предложения поездки
+  // Страница поиска объявлений (список населенных пунктов)
+  if (currentView === 'trip-search') {
+    // Если выбран населенный пункт, показываем список объявлений
+    if (selectedSettlement) {
+      return (
+        <div className="app">
+          <TelegramWebAppInfo isTelegramWebApp={isTelegramWebApp} />
+          <div className="page-container">
+            <div className="page-header">
+              <button onClick={() => {
+                setSelectedSettlement(null);
+                setTripOffers([]);
+              }} className="back-btn">
+                ← Назад
+              </button>
+              <h1>📋 Объявления в {selectedSettlement}</h1>
+            </div>
+            
+            <div className="trips-content">
+              {loadingTripOffers ? (
+                <div className="loading">
+                  <div className="spinner"></div>
+                  <p>Загрузка объявлений...</p>
+                </div>
+              ) : tripOffers.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">📭</div>
+                  <h3>В этом населенном пункте пока нет объявлений</h3>
+                  <p>Попробуйте выбрать другой населенный пункт</p>
+                </div>
+              ) : (
+                <div className="trips-list">
+                  {tripOffers.map((trip) => (
+                    <div key={trip.id} className="trip-item">
+                      <div className="trip-route">
+                        <div className="trip-from">
+                          <span className="trip-label">Откуда:</span>
+                          <span className="trip-address">{trip.fromAddress}</span>
+                          <span className="trip-settlement">{trip.fromSettlement}</span>
+                        </div>
+                        <div className="trip-arrow">→</div>
+                        <div className="trip-to">
+                          <span className="trip-label">Куда:</span>
+                          <span className="trip-address">{trip.toAddress}</span>
+                          <span className="trip-settlement">{trip.toSettlement}</span>
+                        </div>
+                      </div>
+                      {trip.comment && (
+                        <div className="trip-comment">
+                          <span className="trip-label">Комментарий:</span>
+                          <span>{trip.comment}</span>
+                        </div>
+                      )}
+                      <div className="trip-info">
+                        <span className="trip-date">
+                          Создано: {new Date(trip.createdAt).toLocaleString('ru-RU', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      <div className="trip-actions">
+                        {trip.hasOffer ? (
+                          <button 
+                            className="btn offer-sent-btn"
+                            onClick={() => handleViewTripDetails(trip)}
+                            disabled
+                          >
+                            ✅ Предложение отправлено
+                          </button>
+                        ) : (
+                          <button 
+                            className="btn offer-price-btn"
+                            onClick={() => handleViewTripDetails(trip)}
+                          >
+                            💰 Предложить цену
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Показываем список населенных пунктов
+    return (
+      <div className="app">
+        <TelegramWebAppInfo isTelegramWebApp={isTelegramWebApp} />
+        <div className="page-container">
+          <div className="page-header">
+            <button onClick={handleBackToMain} className="back-btn">
+              ← Назад
+            </button>
+            <h1>🔍 Поиск объявлений</h1>
+          </div>
+          
+          <div className="settlements-content">
+            {loadingSettlements ? (
+              <div className="loading">
+                <div className="spinner"></div>
+                <p>Загрузка населенных пунктов...</p>
+              </div>
+            ) : settlements.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📍</div>
+                <h3>Нет доступных населенных пунктов</h3>
+                <p>Пока нет объявлений от Requester'ов</p>
+              </div>
+            ) : (
+              <div className="settlements-list">
+                {settlements.map((settlement) => (
+                  <div 
+                    key={settlement.id} 
+                    className="settlement-item"
+                    onClick={() => handleSelectSettlement(settlement.name)}
+                  >
+                    <div className="settlement-info">
+                      <h3>{settlement.name}</h3>
+                      <span className="settlement-type">{settlement.type}</span>
+                    </div>
+                    <div className="settlement-trips-count">
+                      <span className="trips-count">{settlement.tripsCount}</span>
+                      <span className="trips-label">
+                        {settlement.tripsCount === 1 ? 'объявление' : 
+                         settlement.tripsCount < 5 ? 'объявления' : 'объявлений'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Страница детальной информации об объявлении и предложения цены
+  if (currentView === 'trip-details' && selectedTrip) {
+    return (
+      <div className="app">
+        <TelegramWebAppInfo isTelegramWebApp={isTelegramWebApp} />
+        <div className="page-container">
+          <div className="page-header">
+            <button onClick={() => {
+              setSelectedTrip(null);
+              setTripDetails(null);
+              setExistingOffer(null);
+              setOfferPrice('');
+              setOfferComment('');
+              setCurrentView('trip-search');
+            }} className="back-btn">
+              ← Назад
+            </button>
+            <h1>📋 Объявление</h1>
+          </div>
+          
+          <div className="trip-details-content">
+            {loadingTripDetails ? (
+              <div className="loading">
+                <div className="spinner"></div>
+                <p>Загрузка деталей объявления...</p>
+              </div>
+            ) : tripDetails ? (
+              <>
+                {/* Детальная информация об объявлении */}
+                <div className="trip-details-info">
+                  <div className="trip-detail-section">
+                    <h3>📍 Откуда</h3>
+                    <p className="trip-detail-address">{tripDetails.trip.fromAddress}</p>
+                    <p className="trip-detail-settlement">{tripDetails.trip.fromSettlement}</p>
+                    {tripDetails.trip.fromLatitude && tripDetails.trip.fromLongitude && (
+                      <button 
+                        className="btn show-map-btn"
+                        onClick={() => showOnMap(tripDetails.trip.fromAddress)}
+                      >
+                        🗺️ Показать на карте
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="trip-detail-section">
+                    <h3>🎯 Куда</h3>
+                    <p className="trip-detail-address">{tripDetails.trip.toAddress}</p>
+                    <p className="trip-detail-settlement">{tripDetails.trip.toSettlement}</p>
+                    {tripDetails.trip.toLatitude && tripDetails.trip.toLongitude && (
+                      <button 
+                        className="btn show-map-btn"
+                        onClick={() => showOnMap(tripDetails.trip.toAddress)}
+                      >
+                        🗺️ Показать на карте
+                      </button>
+                    )}
+                  </div>
+
+                  {tripDetails.trip.comment && (
+                    <div className="trip-detail-section">
+                      <h3>💬 Комментарий Requester'а</h3>
+                      <p className="trip-detail-comment">{tripDetails.trip.comment}</p>
+                    </div>
+                  )}
+
+                  <div className="trip-detail-section">
+                    <h3>👤 Requester</h3>
+                    <p className="trip-detail-requester">
+                      {tripDetails.requester.firstName} {tripDetails.requester.lastName}
+                      {tripDetails.requester.username && ` (@${tripDetails.requester.username})`}
+                    </p>
+                  </div>
+
+                  <div className="trip-detail-section">
+                    <h3>📅 Дата создания</h3>
+                    <p className="trip-detail-date">
+                      {new Date(tripDetails.trip.createdAt).toLocaleString('ru-RU', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Форма предложения цены */}
+                {existingOffer ? (
+                  <div className="offer-status-section">
+                    <div className="offer-status-message success">
+                      <h3>✅ Предложение отправлено</h3>
+                      <p>Ваша цена: <strong>{existingOffer.price} ₽</strong></p>
+                      {existingOffer.comment && (
+                        <p>Ваш комментарий: {existingOffer.comment}</p>
+                      )}
+                      <p className="offer-status">
+                        Статус: {existingOffer.status === 'Pending' ? 'Ожидает ответа' : 
+                                 existingOffer.status === 'Accepted' ? 'Принято' : 
+                                 existingOffer.status === 'Rejected' ? 'Отклонено' : existingOffer.status}
+                      </p>
+                      <p className="offer-date">
+                        Отправлено: {new Date(existingOffer.createdAt).toLocaleString('ru-RU', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="offer-form-section">
+                    <h2>💰 Предложить цену</h2>
+                    <div className="offer-form">
+                      <div className="form-group">
+                        <label htmlFor="offer-price">Цена за поездку (₽) *</label>
+                        <input
+                          id="offer-price"
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          value={offerPrice}
+                          onChange={(e) => setOfferPrice(e.target.value)}
+                          placeholder="Например: 500"
+                          disabled={submittingOffer}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="offer-comment">Комментарий к предложению (необязательно)</label>
+                        <textarea
+                          id="offer-comment"
+                          value={offerComment}
+                          onChange={(e) => setOfferComment(e.target.value)}
+                          placeholder="Дополнительная информация о вашем предложении..."
+                          rows={4}
+                          disabled={submittingOffer}
+                        />
+                      </div>
+
+                      <button
+                        className="btn submit-offer-btn"
+                        onClick={handleSubmitOffer}
+                        disabled={submittingOffer || !offerPrice || parseFloat(offerPrice) <= 0}
+                      >
+                        {submittingOffer ? '🔄 Отправка...' : '📤 Отправить предложение'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">❌</div>
+                <h3>Не удалось загрузить детальную информацию</h3>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Страница предложения поездки (старая, не используется)
   if (currentView === 'offer') {
     return (
       <div className="app">
@@ -1366,6 +1863,43 @@ function App() {
       <DocumentVerification
         isTelegramWebApp={isTelegramWebApp}
         onBack={handleBackToMain}
+        onUploadAgain={() => setCurrentView('upload-documents')}
+      />
+    );
+  }
+
+  // Страница списка документов на модерации
+  if (currentView === 'moderation-list') {
+    return (
+      <ModerationList
+        isTelegramWebApp={isTelegramWebApp}
+        onBack={handleBackToMain}
+        onSelectDocument={(documentsId) => {
+          setSelectedDocumentsId(documentsId);
+          setCurrentView('moderation-detail');
+        }}
+      />
+    );
+  }
+
+  // Страница детальной проверки документа
+  if (currentView === 'moderation-detail' && selectedDocumentsId !== null) {
+    return (
+      <ModerationDetail
+        isTelegramWebApp={isTelegramWebApp}
+        documentsId={selectedDocumentsId}
+        onBack={() => {
+          setSelectedDocumentsId(null);
+          setCurrentView('moderation-list');
+        }}
+        onApproved={() => {
+          setSelectedDocumentsId(null);
+          setCurrentView('moderation-list');
+        }}
+        onRejected={() => {
+          setSelectedDocumentsId(null);
+          setCurrentView('moderation-list');
+        }}
       />
     );
   }
@@ -1399,6 +1933,16 @@ function App() {
               <span className="btn-icon">🚙</span>
               <span className="btn-text">Предложить машину</span>
             </button>
+
+          {isAdmin && (
+            <button 
+              className="menu-btn moderation-btn"
+              onClick={() => setCurrentView('moderation-list')}
+            >
+              <span className="btn-icon">📋</span>
+              <span className="btn-text">Модерация</span>
+            </button>
+          )}
 
           {!userInfo.capabilities.canSearchTrips && !userInfo.capabilities.canCreateTrips && (
             <div className="no-capabilities">

@@ -1,0 +1,17 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "YouDovezu Database",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "youdovezu",
+      "Username": "youdovezu",
+      "Password": "youdovezu_password",
+      "SSLMode": "prefer",
+      "Comment": "YouDovezu PostgreSQL Database"
+    }
+  }
+}
+
+

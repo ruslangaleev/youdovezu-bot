@@ -7,6 +7,7 @@ import { getInitData } from '../config';
 interface DocumentVerificationProps {
   isTelegramWebApp: boolean;
   onBack: () => void;
+  onUploadAgain?: () => void;
 }
 
 interface VerificationStatus {
@@ -20,6 +21,7 @@ interface VerificationStatus {
 export const DocumentVerification: React.FC<DocumentVerificationProps> = ({
   isTelegramWebApp,
   onBack,
+  onUploadAgain,
 }) => {
   const [status, setStatus] = useState<VerificationStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -171,6 +173,15 @@ export const DocumentVerification: React.FC<DocumentVerificationProps> = ({
               {status.status === 'Rejected' && (
                 <div className="status-message error">
                   <p>К сожалению, ваши документы были отклонены. Пожалуйста, проверьте комментарий администратора и отправьте документы заново.</p>
+                  {onUploadAgain && (
+                    <button 
+                      className="btn" 
+                      onClick={onUploadAgain}
+                      style={{ marginTop: '15px' }}
+                    >
+                      📤 Загрузить документы заново
+                    </button>
+                  )}
                 </div>
               )}
             </div>

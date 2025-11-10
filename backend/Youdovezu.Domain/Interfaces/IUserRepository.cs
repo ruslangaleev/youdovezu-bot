@@ -41,4 +41,10 @@ public interface IUserRepository
     /// <param name="telegramId">Telegram ID пользователя</param>
     /// <returns>True, если пользователь существует</returns>
     Task<bool> ExistsByTelegramIdAsync(long telegramId);
+
+    /// <summary>
+    /// Получает всех администраторов
+    /// </summary>
+    /// <returns>Список администраторов</returns>
+    Task<List<User>> GetAllAdminsAsync();
 }

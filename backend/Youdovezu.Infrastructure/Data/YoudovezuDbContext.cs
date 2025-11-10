@@ -32,6 +32,16 @@ public class YoudovezuDbContext : DbContext
     public DbSet<DriverDocuments> DriverDocuments { get; set; }
 
     /// <summary>
+    /// Населенные пункты
+    /// </summary>
+    public DbSet<Settlement> Settlements { get; set; }
+
+    /// <summary>
+    /// Предложения от Offerer'ов
+    /// </summary>
+    public DbSet<TripOffer> TripOffers { get; set; }
+
+    /// <summary>
     /// Настройка модели данных при создании контекста
     /// </summary>
     /// <param name="modelBuilder">Построитель модели данных</param>
@@ -85,6 +95,47 @@ public class YoudovezuDbContext : DbContext
             entity.HasOne(e => e.User)
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            entity.Property(e => e.Status).HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+
+        // Настройка сущности Settlement
+        modelBuilder.Entity<Settlement>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.Type);
+            
+            entity.Property(e => e.Type).HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+
+        // Настройка сущности TripOffer
+        modelBuilder.Entity<TripOffer>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TripId);
+            entity.HasIndex(e => e.OffererId);
+            entity.HasIndex(e => e.Status);
+            
+            // Уникальный индекс на паре (TripId, OffererId) для предотвращения дублирования предложений
+            entity.HasIndex(e => new { e.TripId, e.OffererId }).IsUnique();
+            
+            // Связь с Trip
+            entity.HasOne(e => e.Trip)
+                .WithMany()
+                .HasForeignKey(e => e.TripId)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            // Связь с User (Offerer)
+            entity.HasOne(e => e.Offerer)
+                .WithMany()
+                .HasForeignKey(e => e.OffererId)
                 .OnDelete(DeleteBehavior.Restrict);
             
             entity.Property(e => e.Status).HasConversion<int>();

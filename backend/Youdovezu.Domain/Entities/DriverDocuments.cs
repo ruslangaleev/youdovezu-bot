@@ -56,6 +56,46 @@ public class DriverDocuments
     public string? AdminComment { get; set; }
 
     /// <summary>
+    /// Фамилия водителя (заполняется администратором при модерации)
+    /// </summary>
+    public string? DriverLastName { get; set; }
+
+    /// <summary>
+    /// Имя водителя (заполняется администратором при модерации)
+    /// </summary>
+    public string? DriverFirstName { get; set; }
+
+    /// <summary>
+    /// Отчество водителя (заполняется администратором при модерации)
+    /// </summary>
+    public string? DriverMiddleName { get; set; }
+
+    /// <summary>
+    /// Марка автомобиля (заполняется администратором при модерации)
+    /// </summary>
+    public string? VehicleBrand { get; set; }
+
+    /// <summary>
+    /// Модель автомобиля (заполняется администратором при модерации)
+    /// </summary>
+    public string? VehicleModel { get; set; }
+
+    /// <summary>
+    /// Цвет автомобиля (заполняется администратором при модерации)
+    /// </summary>
+    public string? VehicleColor { get; set; }
+
+    /// <summary>
+    /// Государственный номер автомобиля (заполняется администратором при модерации)
+    /// </summary>
+    public string? VehicleLicensePlate { get; set; }
+
+    /// <summary>
+    /// ID администратора, который провел модерацию
+    /// </summary>
+    public long? ModeratedByUserId { get; set; }
+
+    /// <summary>
     /// Дата отправки документов на проверку
     /// </summary>
     public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;

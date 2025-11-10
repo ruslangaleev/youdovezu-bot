@@ -41,5 +41,22 @@ public interface ITripRepository
     /// <param name="trip">Поездка</param>
     /// <returns>Удаленная поездка</returns>
     Task<Trip> DeleteAsync(Trip trip);
+
+    /// <summary>
+    /// Получить активные поездки по населенному пункту
+    /// </summary>
+    /// <param name="settlementName">Название населенного пункта</param>
+    /// <param name="fromSettlement">Фильтр по населенному пункту отправления (опционально)</param>
+    /// <param name="toSettlement">Фильтр по населенному пункту назначения (опционально)</param>
+    /// <param name="searchQuery">Поисковый запрос (опционально)</param>
+    /// <returns>Список активных поездок</returns>
+    Task<List<Trip>> GetActiveTripsBySettlementAsync(string settlementName, string? fromSettlement = null, string? toSettlement = null, string? searchQuery = null);
+
+    /// <summary>
+    /// Получить количество активных поездок в населенном пункте
+    /// </summary>
+    /// <param name="settlementName">Название населенного пункта</param>
+    /// <returns>Количество активных поездок</returns>
+    Task<int> GetActiveTripsCountBySettlementAsync(string settlementName);
 }
 

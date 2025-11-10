@@ -16,6 +16,11 @@ services:
       - ASPNETCORE_HTTPS_PORTS=${ASPNETCORE_HTTPS_PORTS:-8081}
     ports:
       - "8080:8080"
+    volumes:
+      - uploads_data:/app/uploads
+    # Используем init для установки прав на volume при запуске
+    user: root
+    command: sh -c "mkdir -p /app/uploads/driver-documents && chmod -R 777 /app/uploads && dotnet Youdovezu.Presentation.dll"
     restart: unless-stopped
 
   postgres:
@@ -43,10 +48,12 @@ services:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@youdovezu.com}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin123}
       - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
     ports:
       - "5050:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json
     depends_on:
       - postgres
     restart: unless-stopped
@@ -54,3 +61,4 @@ services:
 volumes:
   postgres_data:
   pgadmin_data:
+  uploads_data:

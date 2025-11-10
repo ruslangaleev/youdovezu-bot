@@ -84,4 +84,15 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .AnyAsync(u => u.TelegramId == telegramId);
     }
+
+    /// <summary>
+    /// Получает всех администраторов
+    /// </summary>
+    /// <returns>Список администраторов</returns>
+    public async Task<List<User>> GetAllAdminsAsync()
+    {
+        return await _context.Users
+            .Where(u => u.SystemRole == SystemRole.Admin)
+            .ToListAsync();
+    }
 }

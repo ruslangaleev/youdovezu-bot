@@ -30,6 +30,17 @@ export const UploadDocuments: React.FC<UploadDocumentsProps> = ({
   const avatarRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (file: File | null, setter: (file: File | null) => void) => {
+    if (file) {
+      // Проверяем размер файла (максимум 10 MB на файл)
+      const maxFileSize = 10 * 1024 * 1024; // 10 MB
+      if (file.size > maxFileSize) {
+        const errorMsg = `Файл "${file.name}" слишком большой. Максимальный размер: 10 MB. Текущий размер: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+        setError(errorMsg);
+        alert(errorMsg);
+        setter(null);
+        return;
+      }
+    }
     setter(file);
     setError(null);
   };
@@ -37,10 +48,21 @@ export const UploadDocuments: React.FC<UploadDocumentsProps> = ({
   const handleSubmit = async () => {
     // Проверяем обязательные файлы
     if (!driverLicenseFront || !driverLicenseBack || !vehicleRegistrationFront || !vehicleRegistrationBack || !avatar) {
-      setError('Пожалуйста, загрузите все необходимые документы');
-      if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
-        window.Telegram.WebApp.showAlert('Пожалуйста, загрузите все необходимые документы');
-      }
+      const errorMsg = 'Пожалуйста, загрузите все необходимые документы';
+      setError(errorMsg);
+      alert(errorMsg);
+      return;
+    }
+
+    // Проверяем общий размер всех файлов (максимум 50 MB)
+    const maxTotalSize = 50 * 1024 * 1024; // 50 MB
+    const files = [driverLicenseFront, driverLicenseBack, vehicleRegistrationFront, vehicleRegistrationBack, avatar];
+    const totalSize = files.reduce((sum, file) => sum + (file?.size || 0), 0);
+    
+    if (totalSize > maxTotalSize) {
+      const errorMsg = `Общий размер всех файлов слишком большой: ${(totalSize / 1024 / 1024).toFixed(2)} MB. Максимальный размер: 50 MB. Пожалуйста, уменьшите размер фотографий.`;
+      setError(errorMsg);
+      alert(errorMsg);
       return;
     }
 
@@ -67,25 +89,20 @@ export const UploadDocuments: React.FC<UploadDocumentsProps> = ({
           headers: {
             'Content-Type': 'multipart/form-data',
           },
+          maxContentLength: 50 * 1024 * 1024, // 50 MB
+          maxBodyLength: 50 * 1024 * 1024, // 50 MB
+          timeout: 60000, // 60 секунд таймаут для загрузки файлов
         }
       );
 
       if (response.data) {
-        if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
-          window.Telegram.WebApp.showAlert('Документы успешно отправлены на проверку');
-        } else {
-          alert('Документы успешно отправлены на проверку');
-        }
+        alert('Документы успешно отправлены на проверку');
         onSubmitted();
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Ошибка при загрузке документов';
       setError(errorMessage);
-      if (isTelegramWebApp && window.Telegram?.WebApp?.showAlert) {
-        window.Telegram.WebApp.showAlert(errorMessage);
-      } else {
-        alert(errorMessage);
-      }
+      alert(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +134,7 @@ export const UploadDocuments: React.FC<UploadDocumentsProps> = ({
             className="btn file-upload-btn"
             onClick={() => ref.current?.click()}
           >
-            {file ? `📎 ${file.name}` : '📁 Выбрать файл'}
+            {file ? `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)` : '📁 Выбрать файл'}
           </button>
           {file && (
             <button

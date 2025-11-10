@@ -41,11 +41,23 @@ namespace Youdovezu.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("DriverFirstName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DriverLastName")
+                        .HasColumnType("text");
+
                     b.Property<string>("DriverLicenseBackPath")
                         .HasColumnType("text");
 
                     b.Property<string>("DriverLicenseFrontPath")
                         .HasColumnType("text");
+
+                    b.Property<string>("DriverMiddleName")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("ModeratedByUserId")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -60,6 +72,18 @@ namespace Youdovezu.Infrastructure.Migrations
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("VehicleBrand")
+                        .HasColumnType("text");
+
+                    b.Property<string>("VehicleColor")
+                        .HasColumnType("text");
+
+                    b.Property<string>("VehicleLicensePlate")
+                        .HasColumnType("text");
+
+                    b.Property<string>("VehicleModel")
+                        .HasColumnType("text");
 
                     b.Property<string>("VehicleRegistrationBackPath")
                         .HasColumnType("text");
@@ -76,6 +100,48 @@ namespace Youdovezu.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("DriverDocuments");
+                });
+
+            modelBuilder.Entity("Youdovezu.Domain.Entities.Settlement", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Code")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("Type");
+
+                    b.ToTable("Settlements");
                 });
 
             modelBuilder.Entity("Youdovezu.Domain.Entities.Trip", b =>
@@ -142,6 +208,53 @@ namespace Youdovezu.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Trips");
+                });
+
+            modelBuilder.Entity("Youdovezu.Domain.Entities.TripOffer", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<long>("OffererId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("TripId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OffererId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TripId");
+
+                    b.HasIndex("TripId", "OffererId")
+                        .IsUnique();
+
+                    b.ToTable("TripOffers");
                 });
 
             modelBuilder.Entity("Youdovezu.Domain.Entities.User", b =>
@@ -235,6 +348,25 @@ namespace Youdovezu.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Youdovezu.Domain.Entities.TripOffer", b =>
+                {
+                    b.HasOne("Youdovezu.Domain.Entities.User", "Offerer")
+                        .WithMany()
+                        .HasForeignKey("OffererId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Youdovezu.Domain.Entities.Trip", "Trip")
+                        .WithMany()
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Offerer");
+
+                    b.Navigation("Trip");
                 });
 #pragma warning restore 612, 618
         }

@@ -1099,3 +1099,634 @@
   color: #666;
   margin-bottom: 20px;
 }
+
+/* Стили для модерации */
+.moderation-btn {
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+}
+
+.moderation-list-content {
+  padding: 20px 0;
+}
+
+.documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.document-item {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.document-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.document-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.document-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-icon {
+  font-size: 1.5rem;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+}
+
+.document-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-pending,
+.status-underreview {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-approved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.document-info {
+  margin-bottom: 15px;
+}
+
+.document-date {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.date-label {
+  font-weight: 500;
+}
+
+.date-value {
+  color: #888;
+}
+
+.document-action {
+  margin-top: 15px;
+}
+
+.moderation-detail-content {
+  padding: 20px 0;
+}
+
+.moderation-detail-form {
+  text-align: left;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.document-user-info {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+}
+
+.document-user-info h3 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.document-status-text {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.documents-preview {
+  margin-bottom: 30px;
+}
+
+.documents-preview h3 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.document-preview-item {
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  border: 2px solid #e9ecef;
+  transition: border-color 0.2s;
+}
+
+.document-preview-item:hover {
+  border-color: #007bff;
+}
+
+.document-preview-item label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.document-image {
+  width: 100%;
+  max-height: 200px;
+  min-height: 150px;
+  object-fit: contain;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+  display: block;
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.document-image:hover {
+  transform: scale(1.05);
+  border-color: #007bff;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.document-image:active {
+  transform: scale(1.02);
+}
+
+.document-image:not([src]),
+.document-image[src=""],
+.document-image[src="undefined"] {
+  display: none;
+}
+
+.document-preview-item {
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  border: 2px solid #e9ecef;
+  transition: border-color 0.2s;
+  position: relative;
+  pointer-events: auto;
+}
+
+.document-preview-item:hover {
+  border-color: #007bff;
+}
+
+.document-preview-item * {
+  pointer-events: auto;
+}
+
+/* Модальное окно для полноэкранного просмотра изображений */
+.image-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.9) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 10000 !important;
+  padding: 20px !important;
+  animation: fadeIn 0.2s ease-in;
+  pointer-events: auto !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.image-modal-content {
+  position: relative;
+  max-width: 95%;
+  max-height: 95%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.image-modal-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+  z-index: 10001;
+}
+
+.image-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.8);
+  transform: scale(1.1);
+}
+
+.image-modal-image {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  animation: zoomIn 0.3s ease-out;
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.moderation-form-fields {
+  margin-bottom: 30px;
+}
+
+.moderation-form-fields h3 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.moderation-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+
+.approve-btn {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  flex: 1;
+  min-width: 150px;
+}
+
+.reject-btn {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  flex: 1;
+  min-width: 150px;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+/* Стили для страницы поиска объявлений */
+.settlements-content {
+  padding: 20px 0;
+}
+
+.settlements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.settlement-item {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settlement-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.settlement-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.settlement-info h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.settlement-type {
+  font-size: 0.85rem;
+  color: #888;
+  text-transform: capitalize;
+}
+
+.settlement-trips-count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.trips-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.trips-label {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.offer-price-btn {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.offer-price-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+}
+
+.offer-price-btn:active {
+  transform: translateY(0);
+}
+
+.offer-sent-btn {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: default;
+  width: 100%;
+  opacity: 0.8;
+}
+
+/* Стили для страницы детальной информации об объявлении */
+.trip-details-content {
+  padding: 20px 0;
+}
+
+.trip-details-info {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.trip-detail-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.trip-detail-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.trip-detail-section h3 {
+  color: #667eea;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.trip-detail-address {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.trip-detail-settlement {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.trip-detail-comment {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.trip-detail-requester {
+  color: #333;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.trip-detail-date {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.show-map-btn {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.show-map-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+/* Стили для формы предложения цены */
+.offer-form-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.offer-form-section h2 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+}
+
+.offer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.offer-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.offer-form .form-group label {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.offer-form .form-group input,
+.offer-form .form-group textarea {
+  padding: 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.offer-form .form-group input:focus,
+.offer-form .form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.offer-form .form-group input:disabled,
+.offer-form .form-group textarea:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.submit-offer-btn {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 10px;
+}
+
+.submit-offer-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+}
+
+.submit-offer-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Стили для статуса предложения */
+.offer-status-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.offer-status-message {
+  text-align: center;
+  padding: 20px;
+}
+
+.offer-status-message.success {
+  background: #d4edda;
+  border-radius: 8px;
+  color: #155724;
+}
+
+.offer-status-message h3 {
+  margin-bottom: 15px;
+  color: #155724;
+}
+
+.offer-status-message p {
+  margin: 8px 0;
+  color: #155724;
+}
+
+.offer-status-message strong {
+  font-size: 1.2rem;
+}
+
+.offer-status {
+  font-weight: 600;
+  margin-top: 15px;
+}
+
+.offer-date {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 10px;
+}

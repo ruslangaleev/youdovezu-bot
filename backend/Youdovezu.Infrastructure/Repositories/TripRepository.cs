@@ -83,5 +83,53 @@ public class TripRepository : ITripRepository
 
         return trip;
     }
+
+    /// <summary>
+    /// Получить активные поездки по населенному пункту
+    /// </summary>
+    public async Task<List<Trip>> GetActiveTripsBySettlementAsync(string settlementName, string? fromSettlement = null, string? toSettlement = null, string? searchQuery = null)
+    {
+        var query = _context.Trips
+            .Include(t => t.User)
+            .Where(t => t.Status == TripStatus.Active &&
+                       (t.FromSettlement == settlementName || t.ToSettlement == settlementName));
+
+        // Фильтрация по населенному пункту отправления
+        if (!string.IsNullOrWhiteSpace(fromSettlement))
+        {
+            query = query.Where(t => t.FromSettlement.Contains(fromSettlement));
+        }
+
+        // Фильтрация по населенному пункту назначения
+        if (!string.IsNullOrWhiteSpace(toSettlement))
+        {
+            query = query.Where(t => t.ToSettlement.Contains(toSettlement));
+        }
+
+        // Поиск по ключевым словам
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            query = query.Where(t =>
+                t.FromSettlement.Contains(searchQuery) ||
+                t.ToSettlement.Contains(searchQuery) ||
+                t.FromAddress.Contains(searchQuery) ||
+                t.ToAddress.Contains(searchQuery) ||
+                (t.Comment != null && t.Comment.Contains(searchQuery)));
+        }
+
+        return await query
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Получить количество активных поездок в населенном пункте
+    /// </summary>
+    public async Task<int> GetActiveTripsCountBySettlementAsync(string settlementName)
+    {
+        return await _context.Trips
+            .CountAsync(t => t.Status == TripStatus.Active &&
+                            (t.FromSettlement == settlementName || t.ToSettlement == settlementName));
+    }
 }
 

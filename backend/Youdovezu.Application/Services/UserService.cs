@@ -187,4 +187,13 @@ public class UserService : IUserService
 
         return updatedUser;
     }
+
+    /// <summary>
+    /// Получает всех администраторов
+    /// </summary>
+    /// <returns>Список администраторов</returns>
+    public async Task<List<User>> GetAllAdminsAsync()
+    {
+        return await _userRepository.GetAllAdminsAsync();
+    }
 }
