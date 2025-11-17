@@ -48,6 +48,54 @@ export const EditTrip: React.FC<EditTripProps> = ({
   showOnMap,
   onBack,
 }) => {
+  // Функция для прокрутки к полю с учетом клавиатуры
+  const scrollToInput = (inputElement: HTMLInputElement) => {
+    // Сохраняем начальную высоту viewport
+    const initialViewportHeight = window.visualViewport?.height || window.innerHeight;
+    
+    // Функция для выполнения прокрутки
+    const performScroll = () => {
+      inputElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    
+    // Прокручиваем сразу (на случай если клавиатура уже активна)
+    performScroll();
+    
+    // Проверяем изменение размера viewport (появление клавиатуры)
+    const checkViewportChange = () => {
+      const currentViewportHeight = window.visualViewport?.height || window.innerHeight;
+      // Если высота уменьшилась, значит появилась клавиатура
+      if (currentViewportHeight < initialViewportHeight) {
+        // Прокручиваем еще раз после появления клавиатуры
+        setTimeout(() => {
+          performScroll();
+        }, 100);
+      }
+    };
+    
+    // Используем visualViewport API если доступен
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', checkViewportChange, { once: true });
+    } else {
+      // Fallback: используем событие resize с задержкой
+      const resizeHandler = () => {
+        setTimeout(() => {
+          checkViewportChange();
+          window.removeEventListener('resize', resizeHandler);
+        }, 300);
+      };
+      window.addEventListener('resize', resizeHandler);
+    }
+    
+    // Также прокручиваем с задержкой на случай если клавиатура появится позже
+    setTimeout(() => {
+      performScroll();
+    }, 300);
+    
+    setTimeout(() => {
+      performScroll();
+    }, 600);
+  };
   return (
     <div className="app">
       <TelegramWebAppInfo isTelegramWebApp={isTelegramWebApp} />
@@ -90,6 +138,8 @@ export const EditTrip: React.FC<EditTripProps> = ({
                       const length = e.target.value.length;
                       e.target.setSelectionRange(length, length);
                     }, 0);
+                    // Прокручиваем к полю с учетом клавиатуры
+                    scrollToInput(e.target);
                   }}
                 />
                 {fromAddress && (
@@ -143,6 +193,8 @@ export const EditTrip: React.FC<EditTripProps> = ({
                       const length = e.target.value.length;
                       e.target.setSelectionRange(length, length);
                     }, 0);
+                    // Прокручиваем к полю с учетом клавиатуры
+                    scrollToInput(e.target);
                   }}
                 />
                 {toAddress && (

@@ -6,8 +6,14 @@ interface TelegramWebAppInfoProps {
 
 /**
  * Компонент для отображения информации о Telegram WebApp
+ * Показывается только в режиме разработки (development)
  */
 export const TelegramWebAppInfo: React.FC<TelegramWebAppInfoProps> = ({ isTelegramWebApp }) => {
+  // Скрываем компонент в production
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
   if (!isTelegramWebApp) {
     return (
       <div style={{
