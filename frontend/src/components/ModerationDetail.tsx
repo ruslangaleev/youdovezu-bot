@@ -228,7 +228,7 @@ export const ModerationDetail: React.FC<ModerationDetailProps> = ({
             <h1>Проверка документов</h1>
           </div>
           <div className="error-state">
-            <div className="error-icon">⚠️</div>
+            <div className="error-icon"></div>
             <h3>Ошибка</h3>
             <p>{error}</p>
             <button onClick={loadDocumentDetails} className="btn">
@@ -489,14 +489,14 @@ export const ModerationDetail: React.FC<ModerationDetailProps> = ({
                 onClick={handleApprove}
                 disabled={submitting}
               >
-                {submitting ? '⏳ Одобрение...' : '✅ Одобрить'}
+                {submitting ? 'Одобрение...' : 'Одобрить'}
               </button>
               <button
                 className="btn btn-danger reject-btn"
                 onClick={handleReject}
                 disabled={submitting}
               >
-                {submitting ? '⏳ Отклонение...' : '❌ Отклонить'}
+                {submitting ? 'Отклонение...' : 'Отклонить'}
               </button>
             </div>
           </div>

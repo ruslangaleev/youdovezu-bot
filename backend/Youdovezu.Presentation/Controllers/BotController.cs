@@ -269,7 +269,7 @@ public class BotController : ControllerBase
                 
                 _logger.LogInformation("Phone number updated successfully for user {UserId}", updatedUser.Id);
                 
-                // Отправляем сообщение о завершении регистрации
+                // Отправляем сообщение о завершении регистрации с удалением клавиатуры
                 var completionMessage = "🎉 Поздравляем! Регистрация завершена успешно!\n\n" +
                     "✅ Вы согласились с политикой конфиденциальности\n" +
                     "✅ Подтвердили номер телефона\n\n" +
@@ -278,9 +278,15 @@ public class BotController : ControllerBase
                     "🚗 Предлагать свои поездки\n\n" +
                     "Добро пожаловать в YouDovezu! 🚗";
                 
-                await _telegramBotService.SendMessageAsync(telegramId, completionMessage);
+                // Удаляем клавиатуру с кнопкой подтверждения номера
+                await _telegramBotService.SendMessageAsync(telegramId, completionMessage, new ReplyKeyboardRemove());
                 
                 _logger.LogInformation("Registration completion message sent to user {UserId}", telegramId);
+                
+                // Показываем главное меню
+                await _telegramBotService.SendMainMenuAsync(telegramId);
+                
+                _logger.LogInformation("Main menu sent to user {UserId}", telegramId);
             }
             catch (InvalidOperationException ex)
             {

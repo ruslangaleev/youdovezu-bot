@@ -1,7 +1,7 @@
 /* Стили для веб-приложения YouDovezu */
 .app {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--app-bg-color, var(--tg-theme-bg-color, transparent));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -32,7 +32,8 @@
 
 /* Ошибка */
 .error {
-  background: white;
+  background: var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.95));
+  color: var(--tg-theme-text-color, #333);
   border-radius: 16px;
   padding: 30px;
   text-align: center;
@@ -52,7 +53,8 @@
 
 /* Регистрация требуется */
 .registration-required {
-  background: white;
+  background: var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.95));
+  color: var(--tg-theme-text-color, #333);
   border-radius: 16px;
   padding: 30px;
   text-align: center;
@@ -66,18 +68,18 @@
 }
 
 .registration-required h1 {
-  color: #333;
+  color: var(--tg-theme-text-color, #333);
   margin-bottom: 10px;
   font-size: 2rem;
 }
 
 .registration-required h2 {
-  color: #667eea;
+  color: var(--tg-theme-link-color, #667eea);
   margin-bottom: 15px;
 }
 
 .registration-required p {
-  color: #666;
+  color: var(--tg-theme-hint-color, #666);
   margin-bottom: 25px;
   line-height: 1.5;
 }
@@ -167,7 +169,8 @@
 
 /* Главное меню */
 .main-menu {
-  background: white;
+  background: var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.95));
+  color: var(--tg-theme-text-color, #333);
   border-radius: 16px;
   padding: 30px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
@@ -286,7 +289,8 @@
 
 /* Страницы приложения */
 .page-container {
-  background: white;
+  background: var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.95));
+  color: var(--tg-theme-text-color, #333);
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);

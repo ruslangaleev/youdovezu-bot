@@ -19,7 +19,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       <TelegramWebAppInfo isTelegramWebApp={isTelegramWebApp} />
       <div className="main-menu">
         <div className="header">
-          <div className="icon">🚗</div>
+          <div className="icon"></div>
           <h1>YouDovezu</h1>
           <p>Добро пожаловать, {userInfo.user.firstName}!</p>
         </div>
@@ -30,7 +30,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               className="menu-btn search-btn"
               onClick={onSearchTrips}
             >
-              <span className="btn-icon">🔍</span>
+              <span className="btn-icon"></span>
               <span className="btn-text">Ищу машину</span>
               <span className="btn-subtitle">Найти поездку</span>
             </button>
@@ -41,7 +41,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               className="menu-btn offer-btn"
               onClick={onOfferTrip}
             >
-              <span className="btn-icon">🚙</span>
+              <span className="btn-icon"></span>
               <span className="btn-text">Предложить машину</span>
               <span className="btn-subtitle">Создать поездку</span>
             </button>
@@ -57,9 +57,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
         <div className="user-info">
           <p className="user-status">
-            {userInfo.capabilities.canSearchTrips && '👤 Пассажир'}
+            {userInfo.capabilities.canSearchTrips && 'Пассажир'}
             {userInfo.capabilities.canSearchTrips && userInfo.capabilities.canCreateTrips && ' • '}
-            {userInfo.capabilities.canCreateTrips && '🚗 Водитель'}
+            {userInfo.capabilities.canCreateTrips && 'Водитель'}
             {userInfo.user.isTrialActive && ' (Триал)'}
           </p>
         </div>

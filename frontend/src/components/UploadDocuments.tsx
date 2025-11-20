@@ -134,7 +134,7 @@ export const UploadDocuments: React.FC<UploadDocumentsProps> = ({
             className="btn file-upload-btn"
             onClick={() => ref.current?.click()}
           >
-            {file ? `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)` : '📁 Выбрать файл'}
+            {file ? `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)` : 'Выбрать файл'}
           </button>
           {file && (
             <button
@@ -225,10 +225,10 @@ export const UploadDocuments: React.FC<UploadDocumentsProps> = ({
             >
               {submitting ? (
                 <>
-                  🔄 Отправка...
+                  Отправка...
                 </>
               ) : (
-                '📤 Отправить на проверку'
+                'Отправить на проверку'
               )}
             </button>
           </div>

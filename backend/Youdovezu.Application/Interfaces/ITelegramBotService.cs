@@ -30,4 +30,11 @@ public interface ITelegramBotService
     /// <param name="message">Доменная модель сообщения</param>
     /// <returns>Task, представляющий асинхронную операцию</returns>
     Task ProcessMessageAsync(TelegramMessage message);
+
+    /// <summary>
+    /// Отправляет главное меню после завершения регистрации
+    /// </summary>
+    /// <param name="chatId">ID чата</param>
+    /// <returns>Task, представляющий асинхронную операцию</returns>
+    Task SendMainMenuAsync(long chatId);
 }

@@ -285,7 +285,7 @@ public class TelegramBotService : ITelegramBotService
     /// Отправляет главное меню после завершения регистрации
     /// </summary>
     /// <param name="chatId">ID чата</param>
-    private async Task SendMainMenuAsync(long chatId)
+    public async Task SendMainMenuAsync(long chatId)
     {
         var welcomeText = @"🎉 **Добро пожаловать в YouDovezu!**
 

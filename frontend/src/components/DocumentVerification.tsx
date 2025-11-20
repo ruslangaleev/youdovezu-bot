@@ -62,13 +62,13 @@ export const DocumentVerification: React.FC<DocumentVerificationProps> = ({
     switch (status) {
       case 'Pending':
       case 'UnderReview':
-        return '⏳';
+        return '';
       case 'Approved':
-        return '✅';
+        return '';
       case 'Rejected':
-        return '❌';
+        return '';
       default:
-        return '📄';
+        return '';
     }
   };
 
@@ -94,7 +94,7 @@ export const DocumentVerification: React.FC<DocumentVerificationProps> = ({
           <button onClick={onBack} className="back-btn">
             ← Назад
           </button>
-          <h1>📋 Проверка документов</h1>
+          <h1>Проверка документов</h1>
         </div>
 
         <div className="verification-content">
@@ -105,7 +105,7 @@ export const DocumentVerification: React.FC<DocumentVerificationProps> = ({
             </div>
           ) : error ? (
             <div className="error-state">
-              <div className="error-icon">⚠️</div>
+              <div className="error-icon"></div>
               <h3>Ошибка</h3>
               <p>{error}</p>
               <button className="btn" onClick={loadStatus}>
@@ -166,7 +166,7 @@ export const DocumentVerification: React.FC<DocumentVerificationProps> = ({
 
               {status.status === 'Approved' && (
                 <div className="status-message success">
-                  <p>🎉 Поздравляем! Ваши документы одобрены. Теперь вы можете использовать все возможности водительского режима.</p>
+                  <p>Поздравляем! Ваши документы одобрены. Теперь вы можете использовать все возможности водительского режима.</p>
                 </div>
               )}
 
@@ -179,7 +179,7 @@ export const DocumentVerification: React.FC<DocumentVerificationProps> = ({
                       onClick={onUploadAgain}
                       style={{ marginTop: '15px' }}
                     >
-                      📤 Загрузить документы заново
+                      Загрузить документы заново
                     </button>
                   )}
                 </div>

@@ -44,7 +44,7 @@ export const RegistrationRequired: React.FC<RegistrationRequiredProps> = ({
   return (
     <div className="app">
       <div className="registration-required">
-        <div className="icon">🚗</div>
+        <div className="icon"></div>
         <h1>YouDovezu</h1>
         <h2>Завершите регистрацию</h2>
         <p>{userInfo.message}</p>

@@ -28,7 +28,7 @@ export const TelegramWebAppInfo: React.FC<TelegramWebAppInfoProps> = ({ isTelegr
         zIndex: 1000,
         boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
       }}>
-        ⚠️ Тестовый режим
+        Тестовый режим
       </div>
     );
   }
@@ -46,7 +46,7 @@ export const TelegramWebAppInfo: React.FC<TelegramWebAppInfoProps> = ({ isTelegr
       zIndex: 1000,
       boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
     }}>
-      ✅ Telegram WebApp
+      Telegram WebApp
     </div>
   );
 };

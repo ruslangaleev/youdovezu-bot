@@ -64,7 +64,7 @@ export const ModerationList: React.FC<ModerationListProps> = ({
             <button onClick={onBack} className="back-btn">
               ← Назад
             </button>
-            <h1>📋 Модерация документов</h1>
+            <h1>Модерация документов</h1>
           </div>
           <div className="loading">
             <div className="spinner"></div>
@@ -84,10 +84,10 @@ export const ModerationList: React.FC<ModerationListProps> = ({
             <button onClick={onBack} className="back-btn">
               ← Назад
             </button>
-            <h1>📋 Модерация документов</h1>
+            <h1>Модерация документов</h1>
           </div>
           <div className="error-state">
-            <div className="error-icon">⚠️</div>
+            <div className="error-icon"></div>
             <h3>Ошибка</h3>
             <p>{error}</p>
             <button onClick={loadDocuments} className="btn">
@@ -108,7 +108,7 @@ export const ModerationList: React.FC<ModerationListProps> = ({
             <button onClick={onBack} className="back-btn">
               ← Назад
             </button>
-            <h1>📋 Модерация документов</h1>
+            <h1>Модерация документов</h1>
           </div>
           <div className="empty-state">
             <div className="empty-icon">📄</div>
@@ -141,7 +141,7 @@ export const ModerationList: React.FC<ModerationListProps> = ({
               >
                 <div className="document-header">
                   <div className="document-user">
-                    <span className="user-icon">👤</span>
+                    <span className="user-icon"></span>
                     <span className="user-name">{doc.userName}</span>
                   </div>
                   <div className={`document-status status-${doc.status.toLowerCase()}`}>

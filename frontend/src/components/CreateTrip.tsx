@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import TelegramWebAppInfo from './TelegramWebAppInfo';
 
 interface CreateTripProps {
@@ -46,6 +46,39 @@ export const CreateTrip: React.FC<CreateTripProps> = ({
   showOnMap,
   onBack,
 }) => {
+  // Управление Main Button от Telegram
+  useEffect(() => {
+    if (!isTelegramWebApp || !window.Telegram?.WebApp) {
+      return;
+    }
+
+    const tg = window.Telegram.WebApp;
+    const mainButton = tg.MainButton;
+
+    // Проверяем валидность формы
+    const isFormValid = 
+      fromSettlement.trim() !== '' &&
+      toSettlement.trim() !== '' &&
+      fromAddress.trim() !== '' &&
+      toAddress.trim() !== '' &&
+      fromAddressSelected &&
+      toAddressSelected;
+
+    if (isFormValid && !creatingTrip) {
+      mainButton.setText('Создать поездку');
+      mainButton.onClick(handleSubmitCreateTrip);
+      mainButton.show();
+    } else {
+      mainButton.hide();
+    }
+
+    // Очистка при размонтировании
+    return () => {
+      mainButton.hide();
+      mainButton.offClick(handleSubmitCreateTrip);
+    };
+  }, [fromSettlement, toSettlement, fromAddress, toAddress, fromAddressSelected, toAddressSelected, creatingTrip, isTelegramWebApp, handleSubmitCreateTrip]);
+
   // Функция для прокрутки к полю с учетом клавиатуры
   const scrollToInput = (inputElement: HTMLInputElement) => {
     // Сохраняем начальную высоту viewport
@@ -102,7 +135,7 @@ export const CreateTrip: React.FC<CreateTripProps> = ({
           <button onClick={onBack} className="back-btn">
             ← Назад
           </button>
-          <h1>➕ Новая поездка</h1>
+          <h1>Новая поездка</h1>
         </div>
 
         <div className="create-trip-content">
@@ -157,7 +190,7 @@ export const CreateTrip: React.FC<CreateTripProps> = ({
                   onClick={() => showOnMap(fromFullAddress)}
                   title="Показать на Яндекс.Картах"
                 >
-                  🗺️ Показать на карте
+                  Показать на карте
                 </button>
               )}
             </div>
@@ -212,7 +245,7 @@ export const CreateTrip: React.FC<CreateTripProps> = ({
                   onClick={() => showOnMap(toFullAddress)}
                   title="Показать на Яндекс.Картах"
                 >
-                  🗺️ Показать на карте
+                  Показать на карте
                 </button>
               )}
             </div>
@@ -226,19 +259,21 @@ export const CreateTrip: React.FC<CreateTripProps> = ({
               ></textarea>
             </div>
             
-            <button 
-              className="btn create-trip-btn"
-              onClick={handleSubmitCreateTrip}
-              disabled={creatingTrip}
-            >
-              {creatingTrip ? (
-                <>
-                  🔄 Создание...
-                </>
-              ) : (
-                '🚙 Создать поездку'
-              )}
-            </button>
+            {!isTelegramWebApp && (
+              <button 
+                className="btn create-trip-btn"
+                onClick={handleSubmitCreateTrip}
+                disabled={creatingTrip}
+              >
+                {creatingTrip ? (
+                  <>
+                    Создание...
+                  </>
+                ) : (
+                  'Создать поездку'
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

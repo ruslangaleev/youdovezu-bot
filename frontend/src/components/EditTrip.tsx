@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import TelegramWebAppInfo from './TelegramWebAppInfo';
 
 interface EditTripProps {
@@ -48,6 +48,76 @@ export const EditTrip: React.FC<EditTripProps> = ({
   showOnMap,
   onBack,
 }) => {
+  // Состояние для отслеживания исходных значений
+  const [initialValues, setInitialValues] = useState<{
+    fromSettlement: string;
+    toSettlement: string;
+    fromAddress: string;
+    toAddress: string;
+    comment: string;
+  } | null>(null);
+
+  // Сбрасываем initialValues при изменении tripId
+  useEffect(() => {
+    setInitialValues(null);
+  }, [tripId]);
+
+  // Загружаем исходные значения при монтировании или при изменении tripId
+  useEffect(() => {
+    // Устанавливаем исходные значения только один раз при загрузке данных поездки
+    if (fromSettlement && toSettlement && fromAddress && toAddress && initialValues === null) {
+      setInitialValues({
+        fromSettlement,
+        toSettlement,
+        fromAddress,
+        toAddress,
+        comment: comment || ''
+      });
+    }
+  }, [fromSettlement, toSettlement, fromAddress, toAddress, comment, initialValues]);
+
+  // Управление Main Button от Telegram
+  useEffect(() => {
+    if (!isTelegramWebApp || !window.Telegram?.WebApp) {
+      return;
+    }
+
+    const tg = window.Telegram.WebApp;
+    const mainButton = tg.MainButton;
+
+    // Проверяем валидность формы
+    const isFormValid = 
+      fromSettlement.trim() !== '' &&
+      toSettlement.trim() !== '' &&
+      fromAddress.trim() !== '' &&
+      toAddress.trim() !== '' &&
+      fromAddressSelected &&
+      toAddressSelected;
+
+    // Проверяем, были ли изменения (только если initialValues установлены)
+    const hasChanges = initialValues ? (
+      fromSettlement !== initialValues.fromSettlement ||
+      toSettlement !== initialValues.toSettlement ||
+      fromAddress !== initialValues.fromAddress ||
+      toAddress !== initialValues.toAddress ||
+      (comment || '') !== initialValues.comment
+    ) : false;
+
+    if (isFormValid && hasChanges && !updatingTrip) {
+      mainButton.setText('Сохранить изменения');
+      mainButton.onClick(handleSubmitUpdateTrip);
+      mainButton.show();
+    } else {
+      mainButton.hide();
+    }
+
+    // Очистка при размонтировании
+    return () => {
+      mainButton.hide();
+      mainButton.offClick(handleSubmitUpdateTrip);
+    };
+  }, [fromSettlement, toSettlement, fromAddress, toAddress, fromAddressSelected, toAddressSelected, comment, initialValues, updatingTrip, isTelegramWebApp, handleSubmitUpdateTrip]);
+
   // Функция для прокрутки к полю с учетом клавиатуры
   const scrollToInput = (inputElement: HTMLInputElement) => {
     // Сохраняем начальную высоту viewport
@@ -104,7 +174,7 @@ export const EditTrip: React.FC<EditTripProps> = ({
           <button onClick={onBack} className="back-btn">
             ← Назад
           </button>
-          <h1>✏️ Редактировать поездку</h1>
+          <h1>Редактировать поездку</h1>
         </div>
 
         <div className="create-trip-content">
@@ -159,7 +229,7 @@ export const EditTrip: React.FC<EditTripProps> = ({
                   onClick={() => showOnMap(fromFullAddress)}
                   title="Показать на Яндекс.Картах"
                 >
-                  🗺️ Показать на карте
+                  Показать на карте
                 </button>
               )}
             </div>
@@ -214,7 +284,7 @@ export const EditTrip: React.FC<EditTripProps> = ({
                   onClick={() => showOnMap(toFullAddress)}
                   title="Показать на Яндекс.Картах"
                 >
-                  🗺️ Показать на карте
+                  Показать на карте
                 </button>
               )}
             </div>
@@ -228,19 +298,21 @@ export const EditTrip: React.FC<EditTripProps> = ({
               ></textarea>
             </div>
             
-            <button 
-              className="btn create-trip-btn"
-              onClick={handleSubmitUpdateTrip}
-              disabled={updatingTrip}
-            >
-              {updatingTrip ? (
-                <>
-                  🔄 Сохранение...
-                </>
-              ) : (
-                '💾 Сохранить изменения'
-              )}
-            </button>
+            {!isTelegramWebApp && (
+              <button 
+                className="btn create-trip-btn"
+                onClick={handleSubmitUpdateTrip}
+                disabled={updatingTrip}
+              >
+                {updatingTrip ? (
+                  <>
+                    Сохранение...
+                  </>
+                ) : (
+                  'Сохранить изменения'
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

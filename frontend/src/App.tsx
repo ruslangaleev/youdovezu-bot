@@ -12,6 +12,35 @@ import { ModerationList } from './components/ModerationList';
 import { ModerationDetail } from './components/ModerationDetail';
 
 // Типы для Telegram WebApp
+interface TelegramThemeParams {
+  bg_color?: string;
+  text_color?: string;
+  hint_color?: string;
+  link_color?: string;
+  button_color?: string;
+  button_text_color?: string;
+  secondary_bg_color?: string;
+}
+
+interface TelegramMainButton {
+  text: string;
+  color: string;
+  textColor: string;
+  isVisible: boolean;
+  isActive: boolean;
+  isProgressVisible: boolean;
+  setText: (text: string) => void;
+  onClick: (callback: () => void) => void;
+  offClick: (callback: () => void) => void;
+  show: () => void;
+  hide: () => void;
+  enable: () => void;
+  disable: () => void;
+  showProgress: (leaveActive?: boolean) => void;
+  hideProgress: () => void;
+  setParams: (params: { text?: string; color?: string; text_color?: string; is_active?: boolean; is_visible?: boolean }) => void;
+}
+
 declare global {
   interface Window {
     Telegram?: {
@@ -26,7 +55,10 @@ declare global {
         platform: string;
         version: string;
         colorScheme: string;
-        themeParams: any;
+        themeParams: TelegramThemeParams;
+        MainButton: TelegramMainButton;
+        onEvent: (event: string, callback: () => void) => void;
+        offEvent: (event: string, callback: () => void) => void;
         requestLocation: (callback: (location: { latitude: number; longitude: number }) => void) => void;
         showAlert: (message: string) => void;
         showConfirm: (message: string, callback: (confirmed: boolean) => void) => void;
@@ -92,6 +124,59 @@ function App() {
       log('Running in browser environment (development/testing)');
     }
     
+    // Устанавливаем цвета темы Telegram
+    if (window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      const themeParams = tg.themeParams;
+      
+      // Устанавливаем CSS-переменные для цветов темы
+      if (themeParams) {
+        const root = document.documentElement;
+        
+        // Основные цвета
+        if (themeParams.bg_color) {
+          root.style.setProperty('--tg-theme-bg-color', themeParams.bg_color);
+          root.style.setProperty('--app-bg-color', themeParams.bg_color);
+        }
+        if (themeParams.text_color) {
+          root.style.setProperty('--tg-theme-text-color', themeParams.text_color);
+        }
+        if (themeParams.hint_color) {
+          root.style.setProperty('--tg-theme-hint-color', themeParams.hint_color);
+        }
+        if (themeParams.link_color) {
+          root.style.setProperty('--tg-theme-link-color', themeParams.link_color);
+        }
+        if (themeParams.button_color) {
+          root.style.setProperty('--tg-theme-button-color', themeParams.button_color);
+        }
+        if (themeParams.button_text_color) {
+          root.style.setProperty('--tg-theme-button-text-color', themeParams.button_text_color);
+        }
+        if (themeParams.secondary_bg_color) {
+          root.style.setProperty('--tg-theme-secondary-bg-color', themeParams.secondary_bg_color);
+        }
+      }
+      
+      // Обработчик изменения темы
+      tg.onEvent('themeChanged', () => {
+        const updatedThemeParams = tg.themeParams;
+        if (updatedThemeParams) {
+          const root = document.documentElement;
+          if (updatedThemeParams.bg_color) {
+            root.style.setProperty('--tg-theme-bg-color', updatedThemeParams.bg_color);
+            root.style.setProperty('--app-bg-color', updatedThemeParams.bg_color);
+          }
+          if (updatedThemeParams.text_color) {
+            root.style.setProperty('--tg-theme-text-color', updatedThemeParams.text_color);
+          }
+          if (updatedThemeParams.secondary_bg_color) {
+            root.style.setProperty('--tg-theme-secondary-bg-color', updatedThemeParams.secondary_bg_color);
+          }
+        }
+      });
+    }
+    
     // Проверяем регистрацию пользователя
     checkUserRegistration();
     
@@ -104,6 +189,21 @@ function App() {
       setYandexMapsInitialized(true);
     }
   }, [yandexMapsInitialized]);
+
+  // Скрываем Main Button на всех страницах, кроме создания и редактирования поездки
+  useEffect(() => {
+    if (!isTelegramWebApp || !window.Telegram?.WebApp) {
+      return;
+    }
+
+    const tg = window.Telegram.WebApp;
+    const mainButton = tg.MainButton;
+
+    // Скрываем Main Button на всех страницах, кроме создания и редактирования
+    if (currentView !== 'create-trip' && currentView !== 'edit-trip') {
+      mainButton.hide();
+    }
+  }, [currentView, isTelegramWebApp]);
 
   // Отдельный useEffect для инициализации автодополнения когда переходим на страницу создания/редактирования поездки
   useEffect(() => {
@@ -1224,7 +1324,7 @@ function App() {
       <div className="app">
         <TelegramWebAppInfo isTelegramWebApp={isTelegramWebApp} />
         <div className="error">
-          <h2>❌ Ошибка</h2>
+          <h2>Ошибка</h2>
           <p>{error}</p>
           <div className="error-actions">
           <button onClick={checkUserRegistration} className="btn">
@@ -1274,7 +1374,7 @@ function App() {
       <div className="app">
         <TelegramWebAppInfo isTelegramWebApp={isTelegramWebApp} />
         <div className="registration-required">
-          <div className="icon">🚗</div>
+          <div className="icon"></div>
           <h1>YouDovezu</h1>
           <h2>Завершите регистрацию</h2>
           <p>{userInfo.message}</p>
@@ -1323,7 +1423,7 @@ function App() {
             <button onClick={handleBackToMain} className="back-btn">
               ← Назад
             </button>
-            <h1>🔍 Мои поездки</h1>
+            <h1>Мои поездки</h1>
           </div>
           
           <div className="trips-content">
@@ -1335,7 +1435,7 @@ function App() {
             ) : trips.length === 0 ? (
               <div className="trips-list">
                 <div className="empty-state">
-                  <div className="empty-icon">🚗</div>
+                  <div className="empty-icon"></div>
                   <h3>У вас пока нет поездок</h3>
                   <p>Создайте первую поездку, чтобы найти попутчиков</p>
               </div>
@@ -1382,14 +1482,14 @@ function App() {
                         className="btn edit-trip-btn"
                         onClick={() => handleEditTrip(trip)}
                       >
-                        ✏️ Редактировать
+                        Редактировать
                       </button>
                       <button 
                         className="btn delete-trip-btn"
                         onClick={() => handleDeleteTrip(trip.id)}
                         disabled={deletingTripId === trip.id}
                       >
-                        {deletingTripId === trip.id ? '🔄 Удаление...' : '🗑️ Удалить'}
+                        {deletingTripId === trip.id ? 'Удаление...' : 'Удалить'}
               </button>
             </div>
               </div>
@@ -1403,9 +1503,9 @@ function App() {
                   className="btn create-trip-btn"
                   onClick={handleCreateNewTrip}
                 >
-                  ➕ Новая поездка
+                  Новая поездка
                 </button>
-            </div>
+              </div>
             )}
           </div>
         </div>
@@ -1428,18 +1528,18 @@ function App() {
               }} className="back-btn">
                 ← Назад
               </button>
-              <h1>📋 Объявления в {selectedSettlement}</h1>
-            </div>
-            
+              <h1>Объявления в {selectedSettlement}</h1>
+              </div>
+              
             <div className="trips-content">
               {loadingTripOffers ? (
                 <div className="loading">
                   <div className="spinner"></div>
                   <p>Загрузка объявлений...</p>
-                </div>
+              </div>
               ) : tripOffers.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-icon">📭</div>
+                  <div className="empty-icon"></div>
                   <h3>В этом населенном пункте пока нет объявлений</h3>
                   <p>Попробуйте выбрать другой населенный пункт</p>
                 </div>
@@ -1484,14 +1584,14 @@ function App() {
                             onClick={() => handleViewTripDetails(trip)}
                             disabled
                           >
-                            ✅ Предложение отправлено
+                            Предложение отправлено
                           </button>
                         ) : (
                           <button 
                             className="btn offer-price-btn"
                             onClick={() => handleViewTripDetails(trip)}
                           >
-                            💰 Предложить цену
+                            Предложить цену
                           </button>
                         )}
                       </div>
@@ -1513,10 +1613,10 @@ function App() {
           <div className="page-header">
             <button onClick={handleBackToMain} className="back-btn">
               ← Назад
-            </button>
-            <h1>🔍 Поиск объявлений</h1>
-          </div>
-          
+              </button>
+            <h1>Поиск объявлений</h1>
+            </div>
+            
           <div className="settlements-content">
             {loadingSettlements ? (
               <div className="loading">
@@ -1525,7 +1625,7 @@ function App() {
               </div>
             ) : settlements.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">📍</div>
+                <div className="empty-icon"></div>
                 <h3>Нет доступных населенных пунктов</h3>
                 <p>Пока нет объявлений от Requester'ов</p>
               </div>
@@ -1575,7 +1675,7 @@ function App() {
             }} className="back-btn">
               ← Назад
             </button>
-            <h1>📋 Объявление</h1>
+            <h1>Объявление</h1>
           </div>
           
           <div className="trip-details-content">
@@ -1589,7 +1689,7 @@ function App() {
                 {/* Детальная информация об объявлении */}
                 <div className="trip-details-info">
                   <div className="trip-detail-section">
-                    <h3>📍 Откуда</h3>
+                    <h3>Откуда</h3>
                     <p className="trip-detail-address">{tripDetails.trip.fromAddress}</p>
                     <p className="trip-detail-settlement">{tripDetails.trip.fromSettlement}</p>
                     {tripDetails.trip.fromLatitude && tripDetails.trip.fromLongitude && (
@@ -1597,7 +1697,7 @@ function App() {
                         className="btn show-map-btn"
                         onClick={() => showOnMap(tripDetails.trip.fromAddress)}
                       >
-                        🗺️ Показать на карте
+                        Показать на карте
                       </button>
                     )}
                   </div>
@@ -1611,28 +1711,28 @@ function App() {
                         className="btn show-map-btn"
                         onClick={() => showOnMap(tripDetails.trip.toAddress)}
                       >
-                        🗺️ Показать на карте
+                        Показать на карте
                       </button>
                     )}
                   </div>
 
                   {tripDetails.trip.comment && (
                     <div className="trip-detail-section">
-                      <h3>💬 Комментарий Requester'а</h3>
+                      <h3>Комментарий Requester'а</h3>
                       <p className="trip-detail-comment">{tripDetails.trip.comment}</p>
                     </div>
                   )}
 
                   <div className="trip-detail-section">
-                    <h3>👤 Requester</h3>
+                    <h3>Requester</h3>
                     <p className="trip-detail-requester">
                       {tripDetails.requester.firstName} {tripDetails.requester.lastName}
                       {tripDetails.requester.username && ` (@${tripDetails.requester.username})`}
-                    </p>
-                  </div>
+              </p>
+            </div>
 
                   <div className="trip-detail-section">
-                    <h3>📅 Дата создания</h3>
+                    <h3>Дата создания</h3>
                     <p className="trip-detail-date">
                       {new Date(tripDetails.trip.createdAt).toLocaleString('ru-RU', {
                         year: 'numeric',
@@ -1649,7 +1749,7 @@ function App() {
                 {existingOffer ? (
                   <div className="offer-status-section">
                     <div className="offer-status-message success">
-                      <h3>✅ Предложение отправлено</h3>
+                      <h3>Предложение отправлено</h3>
                       <p>Ваша цена: <strong>{existingOffer.price} ₽</strong></p>
                       {existingOffer.comment && (
                         <p>Ваш комментарий: {existingOffer.comment}</p>
@@ -1672,7 +1772,7 @@ function App() {
                   </div>
                 ) : (
                   <div className="offer-form-section">
-                    <h2>💰 Предложить цену</h2>
+                    <h2>Предложить цену</h2>
                     <div className="offer-form">
                       <div className="form-group">
                         <label htmlFor="offer-price">Цена за поездку (₽) *</label>
@@ -1705,7 +1805,7 @@ function App() {
                         onClick={handleSubmitOffer}
                         disabled={submittingOffer || !offerPrice || parseFloat(offerPrice) <= 0}
                       >
-                        {submittingOffer ? '🔄 Отправка...' : '📤 Отправить предложение'}
+                        {submittingOffer ? 'Отправка...' : 'Отправить предложение'}
                       </button>
                     </div>
                   </div>
@@ -1713,7 +1813,7 @@ function App() {
               </>
             ) : (
               <div className="empty-state">
-                <div className="empty-icon">❌</div>
+                <div className="empty-icon"></div>
                 <h3>Не удалось загрузить детальную информацию</h3>
               </div>
             )}
@@ -1733,7 +1833,7 @@ function App() {
             <button onClick={handleBackToMain} className="back-btn">
               ← Назад
             </button>
-            <h1>🚙 Предложить машину</h1>
+            <h1>Предложить машину</h1>
           </div>
           
           <div className="offer-content">
@@ -1780,7 +1880,7 @@ function App() {
               </div>
               
               <button className="btn offer-btn">
-                🚙 Создать поездку
+                Создать поездку
               </button>
             </div>
           </div>
@@ -1910,7 +2010,7 @@ function App() {
       <TelegramWebAppInfo isTelegramWebApp={isTelegramWebApp} />
       <div className="main-menu">
         <div className="header">
-          <div className="icon">🚗</div>
+          <div className="icon"></div>
           <h1>YouDovezu</h1>
           <p>Добро пожаловать, {userInfo.user.firstName}!</p>
         </div>
@@ -1921,7 +2021,7 @@ function App() {
               className="menu-btn search-btn"
               onClick={handleSearchTrips}
             >
-              <span className="btn-icon">🔍</span>
+              <span className="btn-icon"></span>
               <span className="btn-text">Ищу машину</span>
             </button>
           )}
@@ -1930,7 +2030,7 @@ function App() {
               className="menu-btn offer-btn"
               onClick={handleOfferTrip}
             >
-              <span className="btn-icon">🚙</span>
+              <span className="btn-icon"></span>
               <span className="btn-text">Предложить машину</span>
             </button>
 
@@ -1939,7 +2039,7 @@ function App() {
               className="menu-btn moderation-btn"
               onClick={() => setCurrentView('moderation-list')}
             >
-              <span className="btn-icon">📋</span>
+              <span className="btn-icon"></span>
               <span className="btn-text">Модерация</span>
             </button>
           )}
@@ -1954,9 +2054,9 @@ function App() {
 
         <div className="user-info">
           <p className="user-status">
-            {userInfo.capabilities.canSearchTrips && '👤 Пассажир'}
+            {userInfo.capabilities.canSearchTrips && 'Пассажир'}
             {userInfo.capabilities.canSearchTrips && userInfo.capabilities.canCreateTrips && ' • '}
-            {userInfo.capabilities.canCreateTrips && '🚗 Водитель'}
+            {userInfo.capabilities.canCreateTrips && 'Водитель'}
             {userInfo.user.isTrialActive && ' (Триал)'}
           </p>
         </div>
