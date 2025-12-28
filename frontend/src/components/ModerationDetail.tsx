@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import TelegramWebAppInfo from './TelegramWebAppInfo';
 import axios from 'axios';
 import { config, getInitData } from '../config';
@@ -64,11 +64,7 @@ export const ModerationDetail: React.FC<ModerationDetailProps> = ({
     }
   }, [selectedImage]);
 
-  useEffect(() => {
-    loadDocumentDetails();
-  }, [documentsId]);
-
-  const loadDocumentDetails = async () => {
+  const loadDocumentDetails = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -109,7 +105,11 @@ export const ModerationDetail: React.FC<ModerationDetailProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [documentsId]);
+
+  useEffect(() => {
+    loadDocumentDetails();
+  }, [loadDocumentDetails]);
 
   const handleApprove = async () => {
     // Валидация

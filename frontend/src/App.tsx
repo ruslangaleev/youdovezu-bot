@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './App.css';
 import { apiConfig, getInitData, log, initTelegramWebApp, config } from './config';
-import { getYandexApiKey, YANDEX_CONFIG } from './yandex-config';
+import { getYandexApiKey } from './yandex-config';
 import TelegramWebAppInfo from './components/TelegramWebAppInfo';
 import { CreateTrip } from './components/CreateTrip';
 import { EditTrip } from './components/EditTrip';
@@ -188,7 +188,7 @@ function App() {
       initializeYandexMaps();
       setYandexMapsInitialized(true);
     }
-  }, [yandexMapsInitialized]);
+  }, [yandexMapsInitialized, initializeYandexMaps]);
 
   // Скрываем Main Button на всех страницах, кроме создания и редактирования поездки
   useEffect(() => {
@@ -232,7 +232,7 @@ function App() {
     // }
   }, [currentView]);
 
-  const initializeYandexMaps = () => {
+  const initializeYandexMaps = useCallback(() => {
     console.log('Инициализация Яндекс.Карт...');
     
     // Проверяем, не загружен ли уже скрипт
@@ -300,7 +300,7 @@ function App() {
         });
       }
     }
-  };
+  }, []);
 
 
   const setupAddressAutocomplete = (inputId: string, suggestionsId: string) => {
@@ -1240,26 +1240,6 @@ function App() {
           input.setSelectionRange(length, length);
         }, 0);
       }
-    }
-  };
-
-  // Функция для запроса геолокации через Telegram WebApp
-  const requestCurrentLocation = (field: 'from' | 'to') => {
-    if (!isTelegramWebApp || !window.Telegram?.WebApp) {
-      alert('Геолокация доступна только в Telegram WebApp');
-      return;
-    }
-
-    try {
-      window.Telegram.WebApp.requestLocation((location) => {
-        console.log('Получена геолокация:', location);
-        
-        // Конвертируем координаты в адрес через Яндекс.Карты
-        convertCoordinatesToAddress(location.latitude, location.longitude, field);
-      });
-    } catch (error) {
-      console.error('Ошибка при запросе геолокации:', error);
-      alert('Не удалось получить местоположение');
     }
   };
 
