@@ -18,7 +18,7 @@ spec:
       containers:
       - name: youdovezu-app
         image: youdovezu-app:latest
-        imagePullPolicy: Never  # Используем локальный образ
+        imagePullPolicy: IfNotPresent  # Загрузит образ если его нет, иначе использует существующий
         ports:
         - containerPort: 8080
           name: http
