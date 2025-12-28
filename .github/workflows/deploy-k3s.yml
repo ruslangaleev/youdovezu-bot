@@ -147,9 +147,44 @@ jobs:
         run: |
           kubectl apply -f k8s/pgadmin-deployment.yaml
 
+      - name: Check deployment status before waiting
+        run: |
+          echo "=== Checking deployment status ==="
+          kubectl get deployment youdovezu-app -n youdovezu
+          kubectl get pods -n youdovezu -l app=youdovezu-app
+          
+          echo ""
+          echo "=== Checking pod events ==="
+          kubectl get events -n youdovezu --sort-by='.lastTimestamp' | tail -20
+          
+          echo ""
+          echo "=== Checking pod details (if exists) ==="
+          POD_NAME=$(kubectl get pods -n youdovezu -l app=youdovezu-app -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+          if [ -n "$POD_NAME" ]; then
+            echo "Pod name: $POD_NAME"
+            kubectl describe pod $POD_NAME -n youdovezu
+            echo ""
+            echo "=== Pod logs ==="
+            kubectl logs $POD_NAME -n youdovezu --tail=50 || echo "Cannot get logs yet"
+          else
+            echo "No pod found yet"
+          fi
+
       - name: Wait for app deployment
         run: |
-          kubectl rollout status deployment/youdovezu-app -n youdovezu --timeout=300s
+          kubectl rollout status deployment/youdovezu-app -n youdovezu --timeout=300s || {
+            echo "=== Deployment failed, checking details ==="
+            kubectl get pods -n youdovezu -l app=youdovezu-app
+            POD_NAME=$(kubectl get pods -n youdovezu -l app=youdovezu-app -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+            if [ -n "$POD_NAME" ]; then
+              echo "=== Pod description ==="
+              kubectl describe pod $POD_NAME -n youdovezu
+              echo ""
+              echo "=== Pod logs ==="
+              kubectl logs $POD_NAME -n youdovezu --tail=100 || true
+            fi
+            exit 1
+          }
 
       - name: Health check
         run: |
