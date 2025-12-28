@@ -1,0 +1,187 @@
+name: Deploy to Production VPS
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:  # Позволяет запускать вручную из GitHub UI
+
+env:
+  NODE_VERSION: '18.x'
+  DOTNET_VERSION: '8.0.x'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: Production  # Используем Environment "Production" для секретов и переменных
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend for production
+        working-directory: ./frontend
+        run: npm run build:production:unix
+
+      - name: Prepare backend wwwroot
+        run: |
+          mkdir -p backend/Youdovezu.Presentation/wwwroot
+          cp -r frontend/build/* backend/Youdovezu.Presentation/wwwroot/
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore .NET dependencies
+        working-directory: ./backend
+        run: dotnet restore
+
+      - name: Build .NET solution
+        working-directory: ./backend
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy-package
+          # Копируем backend файлы
+          cp -r backend/* deploy-package/
+          # Удаляем ненужные файлы
+          rm -rf deploy-package/bin deploy-package/obj
+          rm -rf deploy-package/.vs deploy-package/.vscode
+          # Создаем .dockerignore если его нет
+          if [ ! -f deploy-package/.dockerignore ]; then
+            echo "bin/" > deploy-package/.dockerignore
+            echo "obj/" >> deploy-package/.dockerignore
+            echo ".vs/" >> deploy-package/.dockerignore
+            echo ".vscode/" >> deploy-package/.dockerignore
+          fi
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+
+      - name: Add VPS to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to VPS
+        env:
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH }}
+        run: |
+          DEPLOY_PATH=${VPS_DEPLOY_PATH:-/opt/youdovezu-bot}
+          # Создаем директорию на сервере если её нет
+          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
+            mkdir -p ${DEPLOY_PATH}
+            mkdir -p ${DEPLOY_PATH}/backend
+            mkdir -p ${DEPLOY_PATH}/uploads
+          "
+          
+          # Копируем файлы на сервер
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='bin' \
+            --exclude='obj' \
+            --exclude='.vs' \
+            --exclude='.vscode' \
+            deploy-package/ ${VPS_USER}@${VPS_HOST}:${DEPLOY_PATH}/backend/
+          
+          # Копируем docker-compose файлы
+          scp backend/docker-compose.yml ${VPS_USER}@${VPS_HOST}:${DEPLOY_PATH}/backend/
+          scp backend/docker-compose.prod.yml ${VPS_USER}@${VPS_HOST}:${DEPLOY_PATH}/backend/
+
+      - name: Deploy and restart services
+        env:
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH }}
+        run: |
+          DEPLOY_PATH=${VPS_DEPLOY_PATH:-/opt/youdovezu-bot}
+          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
+            cd ${DEPLOY_PATH}/backend
+            
+            # Проверяем наличие .env файла, если его нет - создаем из примера
+            if [ ! -f .env ]; then
+              echo 'Warning: .env file not found. Please create it manually with required environment variables.'
+              echo 'Required variables:'
+              echo '  - Telegram__BotToken'
+              echo '  - Telegram__SecretToken'
+              echo '  - Database__ConnectionString (if not using docker-compose postgres)'
+            fi
+            
+            # Останавливаем старые контейнеры
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml down || true
+            
+            # Собираем и запускаем новые контейнеры
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
+            
+            # Запускаем контейнеры в фоновом режиме
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+            
+            # Очищаем неиспользуемые образы и контейнеры
+            docker system prune -f
+            
+            # Показываем статус контейнеров
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml ps
+            
+            # Показываем последние логи
+            echo '=== Recent logs ==='
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=50
+          "
+
+      - name: Health check
+        env:
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH }}
+        run: |
+          DEPLOY_PATH=${VPS_DEPLOY_PATH:-/opt/youdovezu-bot}
+          echo 'Waiting for services to start...'
+          sleep 10
+          
+          ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
+            cd ${DEPLOY_PATH}/backend
+            
+            # Проверяем health endpoint
+            HEALTH_URL='http://localhost:8080/api/bot/health'
+            MAX_RETRIES=5
+            RETRY_COUNT=0
+            
+            while [ \$RETRY_COUNT -lt \$MAX_RETRIES ]; do
+              if docker-compose -f docker-compose.yml -f docker-compose.prod.yml exec -T youdovezu.presentation curl -f \$HEALTH_URL > /dev/null 2>&1; then
+                echo 'Health check passed!'
+                exit 0
+              fi
+              
+              RETRY_COUNT=\$((RETRY_COUNT + 1))
+              echo \"Health check attempt \$RETRY_COUNT/\$MAX_RETRIES failed, retrying...\"
+              sleep 5
+            done
+            
+            echo 'Health check failed after all retries'
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100
+            exit 1
+          "
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -rf deploy-package
+
