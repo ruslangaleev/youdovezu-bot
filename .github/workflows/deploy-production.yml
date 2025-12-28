@@ -79,9 +79,6 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Install rsync
-        run: sudo apt-get update && sudo apt-get install -y rsync
-
       - name: Deploy to VPS
         env:
           VPS_USER: ${{ secrets.VPS_USER }}
@@ -96,15 +93,10 @@ jobs:
             mkdir -p ${DEPLOY_PATH}/uploads
           "
           
-          # Копируем файлы на сервер
-          rsync -avz --delete \
-            --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='bin' \
-            --exclude='obj' \
-            --exclude='.vs' \
-            --exclude='.vscode' \
-            deploy-package/ ${VPS_USER}@${VPS_HOST}:${DEPLOY_PATH}/backend/
+          # Копируем файлы на сервер используя tar+ssh (более надежно чем rsync)
+          cd deploy-package
+          tar czf - --exclude='.git' --exclude='node_modules' --exclude='bin' --exclude='obj' --exclude='.vs' --exclude='.vscode' . | \
+            ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "cd ${DEPLOY_PATH}/backend && tar xzf -"
           
           # Копируем docker-compose файлы
           scp backend/docker-compose.yml ${VPS_USER}@${VPS_HOST}:${DEPLOY_PATH}/backend/
