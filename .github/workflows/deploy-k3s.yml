@@ -9,212 +9,58 @@ on:
 
 env:
   NODE_VERSION: '18.x'
-  DOTNET_VERSION: '8.0.x'
   IMAGE_NAME: youdovezu-app
   IMAGE_TAG: latest
 
 jobs:
   build-and-deploy:
-    runs-on: self-hosted  # Self-hosted runner на машине с k3s
+    runs-on: self-hosted
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
+      - name: Build frontend
         working-directory: ./frontend
-        run: npm ci
-
-      - name: Build frontend for production
-        working-directory: ./frontend
-        run: npm run build:production:unix
-
-      - name: Prepare backend wwwroot
         run: |
-          mkdir -p backend/Youdovezu.Presentation/wwwroot
-          cp -r frontend/build/* backend/Youdovezu.Presentation/wwwroot/
+          npm ci
+          npm run build:production:unix
+          mkdir -p ../backend/Youdovezu.Presentation/wwwroot
+          cp -r build/* ../backend/Youdovezu.Presentation/wwwroot/
 
       - name: Setup .NET
         run: |
-          # Создаем директорию для .NET в домашней папке пользователя
           mkdir -p ~/.dotnet
-          
-          # Скачиваем скрипт установки .NET
-          # Используем канал 8.0 (без .x) для установки последней версии из этого канала
-          curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin \
-            --channel 8.0 \
-            --install-dir ~/.dotnet \
-            --skip-non-versioned-files
-          
-          # Добавляем .NET в PATH для текущей сессии
+          curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 8.0 --install-dir ~/.dotnet --skip-non-versioned-files
           echo "$HOME/.dotnet" >> $GITHUB_PATH
-          
-          # Проверяем установку
-          export PATH="$HOME/.dotnet:$PATH"
-          dotnet --version
 
-      - name: Restore .NET dependencies
+      - name: Build and deploy
         working-directory: ./backend
-        run: dotnet restore Youdovezu.sln
-
-      - name: Build .NET solution
-        working-directory: ./backend
-        run: dotnet build Youdovezu.sln --configuration Release --no-restore
-
-      - name: Build Docker image
-        working-directory: ./backend
-        run: |
-          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -f Youdovezu.Presentation/Dockerfile .
-
-      - name: Load image into k3s
-        run: |
-          # Метод: Используем временный pod для "прогрева" образа
-          # k3s автоматически загрузит образ при первом использовании
-          # Если образ уже в Docker daemon, k3s может его использовать напрямую
-          echo "Pre-warming image in k3s by creating a temporary pod..."
-          
-          # Создаем временный pod, который использует наш образ
-          # Это заставит k3s загрузить образ (если он еще не загружен)
-          cat <<EOF | kubectl apply -f - || true
-          apiVersion: v1
-          kind: Pod
-          metadata:
-            name: image-warmup-$(date +%s)
-            namespace: default
-          spec:
-            restartPolicy: Never
-            containers:
-            - name: warmup
-              image: ${IMAGE_NAME}:${IMAGE_TAG}
-              imagePullPolicy: IfNotPresent
-              command: ["/bin/sh"]
-              args: ["-c", "echo 'Image warmup complete' && exit 0"]
-          EOF
-          
-          # Ждем немного для загрузки образа
-          sleep 3
-          
-          # Удаляем все временные pods для warmup
-          kubectl delete pod -l app=image-warmup -n default --ignore-not-found=true || true
-          kubectl delete pod --field-selector=status.phase==Succeeded -n default --ignore-not-found=true || true
-          
-          echo "Image warmup completed. Image should be available in k3s."
-
-      - name: Verify kubectl access
-        run: |
-          kubectl cluster-info
-          kubectl get nodes
-          
-      - name: Create namespace
-        run: |
-          kubectl apply -f k8s/namespace.yaml
-
-      - name: Apply PostgreSQL resources
-        run: |
-          kubectl apply -f k8s/postgres-secret.yaml
-          kubectl apply -f k8s/postgres-statefulset.yaml
-          
-          # Ждем готовности PostgreSQL
-          kubectl wait --for=condition=ready pod -l app=postgres -n youdovezu --timeout=300s
-
-      - name: Apply app secrets and config
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_SECRET_TOKEN: ${{ secrets.TELEGRAM_SECRET_TOKEN }}
         run: |
-          # Обновляем секреты с реальными значениями из GitHub Secrets
+          export PATH="$HOME/.dotnet:$PATH"
+          dotnet restore Youdovezu.sln
+          dotnet build Youdovezu.sln --configuration Release --no-restore
+          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -f Youdovezu.Presentation/Dockerfile .
+
+      - name: Deploy to k3s
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/postgres-secret.yaml
+          kubectl apply -f k8s/postgres-statefulset.yaml
+          kubectl wait --for=condition=ready pod -l app=postgres -n youdovezu --timeout=120s
+          
           kubectl create secret generic app-secret \
             --from-literal=Telegram__BotToken="${TELEGRAM_BOT_TOKEN}" \
             --from-literal=Telegram__SecretToken="${TELEGRAM_SECRET_TOKEN}" \
-            -n youdovezu \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Apply app resources
-        run: |
+            -n youdovezu --dry-run=client -o yaml | kubectl apply -f -
+          
           kubectl apply -f k8s/app-pvc.yaml
           kubectl apply -f k8s/app-configmap.yaml
           kubectl apply -f k8s/app-deployment.yaml
           kubectl apply -f k8s/app-service.yaml
-
-      - name: Apply pgAdmin resources (optional)
-        run: |
-          kubectl apply -f k8s/pgadmin-deployment.yaml
-
-      - name: Check deployment status before waiting
-        run: |
-          echo "=== Checking deployment status ==="
-          kubectl get deployment youdovezu-app -n youdovezu
-          kubectl get pods -n youdovezu -l app=youdovezu-app
           
-          echo ""
-          echo "=== Checking pod events ==="
-          kubectl get events -n youdovezu --sort-by='.lastTimestamp' | tail -20
-          
-          echo ""
-          echo "=== Checking pod details (if exists) ==="
-          POD_NAME=$(kubectl get pods -n youdovezu -l app=youdovezu-app -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
-          if [ -n "$POD_NAME" ]; then
-            echo "Pod name: $POD_NAME"
-            kubectl describe pod $POD_NAME -n youdovezu
-            echo ""
-            echo "=== Pod logs ==="
-            kubectl logs $POD_NAME -n youdovezu --tail=50 || echo "Cannot get logs yet"
-          else
-            echo "No pod found yet"
-          fi
-
-      - name: Wait for app deployment
-        run: |
-          kubectl rollout status deployment/youdovezu-app -n youdovezu --timeout=300s || {
-            echo "=== Deployment failed, checking details ==="
-            kubectl get pods -n youdovezu -l app=youdovezu-app
-            POD_NAME=$(kubectl get pods -n youdovezu -l app=youdovezu-app -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
-            if [ -n "$POD_NAME" ]; then
-              echo "=== Pod description ==="
-              kubectl describe pod $POD_NAME -n youdovezu
-              echo ""
-              echo "=== Pod logs ==="
-              kubectl logs $POD_NAME -n youdovezu --tail=100 || true
-            fi
-            exit 1
-          }
-
-      - name: Health check
-        run: |
-          echo "Waiting for services to start..."
-          sleep 10
-          
-          MAX_RETRIES=10
-          RETRY_COUNT=0
-          
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if kubectl exec -n youdovezu deployment/youdovezu-app -- curl -f http://localhost:8080/api/bot/health > /dev/null 2>&1; then
-              echo "Health check passed!"
-              exit 0
-            fi
-            
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            echo "Health check attempt $RETRY_COUNT/$MAX_RETRIES failed, retrying..."
-            sleep 5
-          done
-          
-          echo "Health check failed after all retries"
-          kubectl logs -n youdovezu deployment/youdovezu-app --tail=50
-          exit 1
-
-      - name: Show deployment status
-        run: |
-          echo "=== Deployment Status ==="
-          kubectl get pods -n youdovezu
-          kubectl get services -n youdovezu
-          echo ""
-          echo "=== App Logs (last 20 lines) ==="
-          kubectl logs -n youdovezu deployment/youdovezu-app --tail=20
+          kubectl rollout status deployment/youdovezu-app -n youdovezu --timeout=180s
 
