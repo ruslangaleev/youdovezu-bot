@@ -1105,50 +1105,6 @@ function App() {
     }
   };
 
-  // Функция для конвертации координат в адрес
-  const convertCoordinatesToAddress = async (lat: number, lon: number, field: 'from' | 'to') => {
-    if (!window.ymaps) {
-      alert('Яндекс.Карты не загружены');
-      return;
-    }
-
-    try {
-      const result = await window.ymaps.geocode([lat, lon], {
-        results: 1
-      });
-
-      if (result.geoObjects.getLength() > 0) {
-        const geoObject = result.geoObjects.get(0);
-        const address = geoObject.getAddressLine();
-        
-        console.log('Адрес по координатам:', address);
-        
-        // Устанавливаем адрес в соответствующее поле
-        if (field === 'from') {
-          setFromAddress(address);
-          const input = document.getElementById('from-address') as HTMLInputElement;
-          if (input) {
-            input.value = address;
-          }
-        } else if (field === 'to') {
-          setToAddress(address);
-          const input = document.getElementById('to-address') as HTMLInputElement;
-          if (input) {
-            input.value = address;
-          }
-        }
-        
-        // Показываем уведомление
-        alert(`Адрес определен: ${address}`);
-      } else {
-        alert('Не удалось определить адрес по координатам');
-      }
-    } catch (error) {
-      console.error('Ошибка при геокодировании:', error);
-      alert('Ошибка при определении адреса');
-    }
-  };
-
   if (loading) {
     return (
       <div className="app">
