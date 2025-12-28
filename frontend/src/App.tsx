@@ -171,9 +171,8 @@ function App() {
           console.log('=== ОТПРАВКА В ГЕОКОДЕР ===');
           console.log('Текст запроса:', fullAddress);
           
-          try {
-            if (window.ymaps) {
-              window.ymaps.geocode(fullAddress, {
+          if (window.ymaps) {
+            window.ymaps.geocode(fullAddress, {
                 boundedBy: [
                   [51.0, 53.0], // юго-запад Башкортостана
                   [56.5, 60.0]  // северо-восток Башкортостана
@@ -260,9 +259,6 @@ function App() {
               console.error('Ошибка при запросе к Яндекс.Картам:', error);
               suggestions.innerHTML = '<li style="padding: 8px; color: #999;">Ошибка при поиске адреса</li>';
             });
-          } catch (error: any) {
-            console.error('Ошибка при работе с Яндекс.Картами:', error);
-            suggestions.innerHTML = '<li style="padding: 8px; color: #999;">Ошибка при поиске адреса</li>';
           }
           }, 300);
         }
