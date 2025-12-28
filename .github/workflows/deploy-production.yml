@@ -47,11 +47,11 @@ jobs:
 
       - name: Restore .NET dependencies
         working-directory: ./backend
-        run: dotnet restore
+        run: dotnet restore Youdovezu.sln
 
       - name: Build .NET solution
         working-directory: ./backend
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build Youdovezu.sln --configuration Release --no-restore
 
       - name: Create deployment package
         run: |
