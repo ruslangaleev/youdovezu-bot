@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: youdovezu
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_HTTP_PORTS: "8080"
+  ASPNETCORE_URLS: "http://+:8080"
+  Database__ConnectionString: "Host=postgres;Port=5432;Database=youdovezu;Username=youdovezu;Password=youdovezu_password"
+

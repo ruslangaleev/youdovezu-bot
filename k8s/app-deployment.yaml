@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: youdovezu-app
+  namespace: youdovezu
+  labels:
+    app: youdovezu-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: youdovezu-app
+  template:
+    metadata:
+      labels:
+        app: youdovezu-app
+    spec:
+      containers:
+      - name: youdovezu-app
+        image: youdovezu-app:latest
+        imagePullPolicy: Never  # Используем локальный образ
+        ports:
+        - containerPort: 8080
+          name: http
+        envFrom:
+        - configMapRef:
+            name: app-config
+        - secretRef:
+            name: app-secret
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/uploads
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/bot/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /api/bot/health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+        command:
+        - sh
+        - -c
+        - |
+          mkdir -p /app/uploads/driver-documents
+          chmod -R 777 /app/uploads
+          dotnet Youdovezu.Presentation.dll
+      volumes:
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+

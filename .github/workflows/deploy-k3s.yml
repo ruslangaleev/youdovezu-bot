@@ -1,0 +1,156 @@
+name: Deploy to k3s
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18.x'
+  DOTNET_VERSION: '8.0.x'
+  IMAGE_NAME: youdovezu-app
+  IMAGE_TAG: latest
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted  # Self-hosted runner на машине с k3s
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend for production
+        working-directory: ./frontend
+        run: npm run build:production:unix
+
+      - name: Prepare backend wwwroot
+        run: |
+          mkdir -p backend/Youdovezu.Presentation/wwwroot
+          cp -r frontend/build/* backend/Youdovezu.Presentation/wwwroot/
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore .NET dependencies
+        working-directory: ./backend
+        run: dotnet restore Youdovezu.sln
+
+      - name: Build .NET solution
+        working-directory: ./backend
+        run: dotnet build Youdovezu.sln --configuration Release --no-restore
+
+      - name: Build Docker image
+        working-directory: ./backend
+        run: |
+          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -f Youdovezu.Presentation/Dockerfile .
+
+      - name: Load image into k3s
+        run: |
+          # Сохраняем образ в tar файл
+          docker save ${IMAGE_NAME}:${IMAGE_TAG} -o /tmp/${IMAGE_NAME}.tar
+          
+          # Загружаем образ в k3s используя ctr (containerd CLI)
+          # Используем полный путь к k3s ctr
+          sudo /usr/local/bin/k3s ctr images import /tmp/${IMAGE_NAME}.tar || \
+          sudo k3s ctr images import /tmp/${IMAGE_NAME}.tar
+          
+          # Удаляем временный файл
+          rm -f /tmp/${IMAGE_NAME}.tar
+          
+          # Проверяем, что образ загружен
+          sudo /usr/local/bin/k3s ctr images list | grep ${IMAGE_NAME} || \
+          sudo k3s ctr images list | grep ${IMAGE_NAME}
+          
+          echo "Image ${IMAGE_NAME}:${IMAGE_TAG} loaded successfully"
+
+      - name: Verify kubectl access
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+          
+      - name: Create namespace
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+
+      - name: Apply PostgreSQL resources
+        run: |
+          kubectl apply -f k8s/postgres-secret.yaml
+          kubectl apply -f k8s/postgres-statefulset.yaml
+          
+          # Ждем готовности PostgreSQL
+          kubectl wait --for=condition=ready pod -l app=postgres -n youdovezu --timeout=300s
+
+      - name: Apply app secrets and config
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_SECRET_TOKEN: ${{ secrets.TELEGRAM_SECRET_TOKEN }}
+        run: |
+          # Обновляем секреты с реальными значениями из GitHub Secrets
+          kubectl create secret generic app-secret \
+            --from-literal=Telegram__BotToken="${TELEGRAM_BOT_TOKEN}" \
+            --from-literal=Telegram__SecretToken="${TELEGRAM_SECRET_TOKEN}" \
+            -n youdovezu \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply app resources
+        run: |
+          kubectl apply -f k8s/app-pvc.yaml
+          kubectl apply -f k8s/app-configmap.yaml
+          kubectl apply -f k8s/app-deployment.yaml
+          kubectl apply -f k8s/app-service.yaml
+
+      - name: Apply pgAdmin resources (optional)
+        run: |
+          kubectl apply -f k8s/pgadmin-deployment.yaml
+
+      - name: Wait for app deployment
+        run: |
+          kubectl rollout status deployment/youdovezu-app -n youdovezu --timeout=300s
+
+      - name: Health check
+        run: |
+          echo "Waiting for services to start..."
+          sleep 10
+          
+          MAX_RETRIES=10
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if kubectl exec -n youdovezu deployment/youdovezu-app -- curl -f http://localhost:8080/api/bot/health > /dev/null 2>&1; then
+              echo "Health check passed!"
+              exit 0
+            fi
+            
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Health check attempt $RETRY_COUNT/$MAX_RETRIES failed, retrying..."
+            sleep 5
+          done
+          
+          echo "Health check failed after all retries"
+          kubectl logs -n youdovezu deployment/youdovezu-app --tail=50
+          exit 1
+
+      - name: Show deployment status
+        run: |
+          echo "=== Deployment Status ==="
+          kubectl get pods -n youdovezu
+          kubectl get services -n youdovezu
+          echo ""
+          echo "=== App Logs (last 20 lines) ==="
+          kubectl logs -n youdovezu deployment/youdovezu-app --tail=20
+
