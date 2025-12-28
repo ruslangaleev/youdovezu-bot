@@ -113,6 +113,234 @@ function App() {
   const [submittingOffer, setSubmittingOffer] = useState(false);
   const [existingOffer, setExistingOffer] = useState<any | null>(null);
 
+  // Функция для настройки автодополнения адресов (должна быть объявлена до initializeYandexMaps)
+  const setupAddressAutocomplete = (inputId: string, suggestionsId: string) => {
+    console.log(`Настройка автодополнения для ${inputId}`);
+    
+    const input = document.getElementById(inputId) as HTMLInputElement;
+    const suggestions = document.getElementById(suggestionsId);
+    
+    if (!input || !suggestions) {
+      console.error(`Не найдены элементы: input=${!!input}, suggestions=${!!suggestions}`);
+      return;
+    }
+
+    console.log(`Элементы найдены для ${inputId}`);
+
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    // Обработчик изменения текста с debounce
+    input.addEventListener('input', (e) => {
+      const value = (e.target as HTMLInputElement).value;
+      console.log(`Ввод в ${inputId}: "${value}"`);
+      
+      // Обновляем состояние при ручном вводе и сбрасываем флаги выбора
+      if (inputId === 'from-address') {
+        setFromAddress(value);
+        setFromFullAddress('');
+        setFromAddressSelected(false);
+        setFromCoordinates(null);
+      } else if (inputId === 'to-address') {
+        setToAddress(value);
+        setToFullAddress('');
+        setToAddressSelected(false);
+        setToCoordinates(null);
+      }
+      
+      // Очищаем предыдущий таймер
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      if (value.length > 2 && window.ymaps) {
+        // Добавляем задержку 300мс перед отправкой запроса
+        timeoutId = setTimeout(() => {
+          console.log('Отправляем запрос к Яндекс.Картам через geocode...');
+          
+          // Получаем населенный пункт НАПРЯМУЮ из DOM, чтобы получить актуальное значение
+          const settlementInput = document.getElementById(inputId === 'from-address' ? 'from-settlement' : 'to-settlement') as HTMLSelectElement;
+          const settlement = settlementInput ? settlementInput.value : '';
+          
+          console.log(`Населенный пункт (${inputId}):`, settlement);
+          console.log(`Введенное значение:`, value);
+          
+          // Формируем полный адрес для поиска
+          const fullAddress = settlement ? `${settlement}, ${value}` : value;
+          
+          console.log('Полный адрес для поиска:', fullAddress);
+          console.log('=== ОТПРАВКА В ГЕОКОДЕР ===');
+          console.log('Текст запроса:', fullAddress);
+          
+          try {
+            if (window.ymaps) {
+              window.ymaps.geocode(fullAddress, {
+                boundedBy: [
+                  [51.0, 53.0], // юго-запад Башкортостана
+                  [56.5, 60.0]  // северо-восток Башкортостана
+                ],
+                strictBounds: false,
+                results: 5
+              }).then((result: any) => {
+              console.log('Результат от Яндекс.Карт:', result);
+              
+              // Логируем все свойства результата
+              if (result && result.geoObjects) {
+                const geoObjects = result.geoObjects.toArray();
+                if (geoObjects.length > 0) {
+                  console.log('=== СВОЙСТВА ОБЪЕКТОВ ОТ ГЕОКОДЕРА ===');
+                  geoObjects.forEach((item: any, index: number) => {
+                    console.log(`\n--- Объект ${index + 1} ---`);
+                    const addressLine = item.getAddressLine ? item.getAddressLine() : 'N/A';
+                    const coordinates = item.geometry?.getCoordinates ? item.geometry.getCoordinates() : 'N/A';
+                    const name = item.properties?.get ? item.properties.get('name') : 'N/A';
+                    const kind = item.properties?.get ? item.properties.get('kind') : 'N/A';
+                    const text = item.properties?.get ? item.properties.get('text') : 'N/A';
+                    
+                    console.log('addressLine:', addressLine);
+                    console.log('coordinates:', coordinates);
+                    console.log('name:', name);
+                    console.log('kind:', kind);
+                    console.log('text:', text);
+                    
+                    // Логируем metaDataProperty.GeocoderMetaData.Address.Components
+                    const geocoderMetaData = item.properties?.get ? item.properties.get('GeocoderMetaData') : null;
+                    if (geocoderMetaData && geocoderMetaData.Address && geocoderMetaData.Address.Components) {
+                      console.log('Address Components:', geocoderMetaData.Address.Components);
+                    }
+                    
+                    // Создаем элемент списка
+                    const li = document.createElement('li');
+                    li.textContent = addressLine;
+                    li.style.cursor = 'pointer';
+                    li.style.padding = '8px';
+                    li.style.borderBottom = '1px solid #eee';
+                    
+                    li.addEventListener('click', () => {
+                      console.log('Выбран адрес:', addressLine);
+                      console.log('Координаты:', coordinates);
+                      
+                      // Устанавливаем выбранный адрес
+                      if (inputId === 'from-address') {
+                        setFromAddress(addressLine);
+                        setFromFullAddress(addressLine);
+                        setFromAddressSelected(true);
+                        setFromCoordinates(coordinates);
+                      } else if (inputId === 'to-address') {
+                        setToAddress(addressLine);
+                        setToFullAddress(addressLine);
+                        setToAddressSelected(true);
+                        setToCoordinates(coordinates);
+                      }
+                      
+                      // Очищаем список предложений
+                      suggestions.innerHTML = '';
+                      
+                      // Устанавливаем значение в поле ввода
+                      input.value = addressLine;
+                      
+                      // Устанавливаем курсор в конец
+                      const length = addressLine.length;
+                      setTimeout(() => {
+                        input.focus();
+                        input.setSelectionRange(length, length);
+                      }, 0);
+                    });
+                    
+                    suggestions.appendChild(li);
+                  });
+                } else {
+                  console.log('Нет результатов от геокодера');
+                  suggestions.innerHTML = '<li style="padding: 8px; color: #999;">Адрес не найден</li>';
+                }
+              } else {
+                console.log('Результат не содержит geoObjects');
+                suggestions.innerHTML = '<li style="padding: 8px; color: #999;">Адрес не найден</li>';
+              }
+            }).catch((error: any) => {
+              console.error('Ошибка при запросе к Яндекс.Картам:', error);
+              suggestions.innerHTML = '<li style="padding: 8px; color: #999;">Ошибка при поиске адреса</li>';
+            });
+          } catch (error: any) {
+            console.error('Ошибка при работе с Яндекс.Картами:', error);
+            suggestions.innerHTML = '<li style="padding: 8px; color: #999;">Ошибка при поиске адреса</li>';
+          }
+          }, 300);
+        }
+      }
+    });
+  };
+
+  // Функция для инициализации Яндекс.Карт (должна быть объявлена до useEffect, который её использует)
+  const initializeYandexMaps = useCallback(() => {
+    console.log('Инициализация Яндекс.Карт...');
+    
+    // Проверяем, не загружен ли уже скрипт
+    if (document.querySelector('script[src*="api-maps.yandex.ru"]')) {
+      console.log('Скрипт Яндекс.Карт уже загружен');
+      if (window.ymaps) {
+        window.ymaps.ready(() => {
+          console.log('Яндекс.Карты готовы к использованию (уже загружены)');
+          setupAddressAutocomplete('from-address', 'from-suggestions');
+          setupAddressAutocomplete('to-address', 'to-suggestions');
+        });
+      }
+      return;
+    }
+    
+    // Загружаем скрипт Яндекс.Карт
+    if (!window.ymaps) {
+      const apiKey = getYandexApiKey();
+      console.log('API ключ:', apiKey);
+      
+      const script = document.createElement('script');
+      script.src = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU`;
+      
+      script.onload = () => {
+        console.log('Скрипт Яндекс.Карт загружен успешно');
+        if (window.ymaps) {
+          window.ymaps.ready(() => {
+            console.log('Яндекс.Карты готовы к использованию');
+            
+            // Тестируем API через Geocoder
+            if (window.ymaps) {
+              window.ymaps.geocode('Уфа', {
+                boundedBy: [
+                  [51.0, 53.0], // юго-запад Башкортостана
+                  [56.5, 60.0]  // северо-восток Башкортостана
+                ],
+                strictBounds: false,
+                results: 5
+              }).then((result: any) => {
+                console.log('Тестовый запрос "Уфа" через geocode:', result);
+              }).catch((error: any) => {
+                console.error('Ошибка тестового запроса:', error);
+              });
+            }
+            
+            setupAddressAutocomplete('from-address', 'from-suggestions');
+            setupAddressAutocomplete('to-address', 'to-suggestions');
+          });
+        }
+      };
+      
+      script.onerror = () => {
+        console.error('Ошибка загрузки Яндекс.Карт. Проверьте API ключ.');
+      };
+      
+      document.head.appendChild(script);
+      console.log('Скрипт Яндекс.Карт добавлен в DOM');
+    } else {
+      console.log('Яндекс.Карты уже загружены');
+      if (window.ymaps) {
+        window.ymaps.ready(() => {
+          console.log('Яндекс.Карты готовы к использованию (повторно)');
+          setupAddressAutocomplete('from-address', 'from-suggestions');
+          setupAddressAutocomplete('to-address', 'to-suggestions');
+        });
+      }
+    }
+  }, []);
+
   useEffect(() => {
     // Инициализируем Telegram WebApp
     const telegramWebAppInitialized = initTelegramWebApp();
@@ -231,367 +459,6 @@ function App() {
     //   loadMyTrips();
     // }
   }, [currentView]);
-
-  const initializeYandexMaps = useCallback(() => {
-    console.log('Инициализация Яндекс.Карт...');
-    
-    // Проверяем, не загружен ли уже скрипт
-    if (document.querySelector('script[src*="api-maps.yandex.ru"]')) {
-      console.log('Скрипт Яндекс.Карт уже загружен');
-      if (window.ymaps) {
-        window.ymaps.ready(() => {
-          console.log('Яндекс.Карты готовы к использованию (уже загружены)');
-          setupAddressAutocomplete('from-address', 'from-suggestions');
-          setupAddressAutocomplete('to-address', 'to-suggestions');
-        });
-      }
-      return;
-    }
-    
-    // Загружаем скрипт Яндекс.Карт
-    if (!window.ymaps) {
-      const apiKey = getYandexApiKey();
-      console.log('API ключ:', apiKey);
-      
-      const script = document.createElement('script');
-      script.src = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU`;
-      
-      script.onload = () => {
-        console.log('Скрипт Яндекс.Карт загружен успешно');
-        if (window.ymaps) {
-          window.ymaps.ready(() => {
-            console.log('Яндекс.Карты готовы к использованию');
-            
-            // Тестируем API через Geocoder
-            if (window.ymaps) {
-              window.ymaps.geocode('Уфа', {
-                boundedBy: [
-                  [51.0, 53.0], // юго-запад Башкортостана
-                  [56.5, 60.0]  // северо-восток Башкортостана
-                ],
-                strictBounds: false,
-                results: 5
-              }).then((result: any) => {
-                console.log('Тестовый запрос "Уфа" через geocode:', result);
-              }).catch((error: any) => {
-                console.error('Ошибка тестового запроса:', error);
-              });
-            }
-            
-            setupAddressAutocomplete('from-address', 'from-suggestions');
-            setupAddressAutocomplete('to-address', 'to-suggestions');
-          });
-        }
-      };
-      
-      script.onerror = () => {
-        console.error('Ошибка загрузки Яндекс.Карт. Проверьте API ключ.');
-      };
-      
-      document.head.appendChild(script);
-      console.log('Скрипт Яндекс.Карт добавлен в DOM');
-    } else {
-      console.log('Яндекс.Карты уже загружены');
-      if (window.ymaps) {
-        window.ymaps.ready(() => {
-          console.log('Яндекс.Карты готовы к использованию (повторно)');
-          setupAddressAutocomplete('from-address', 'from-suggestions');
-          setupAddressAutocomplete('to-address', 'to-suggestions');
-        });
-      }
-    }
-  }, []);
-
-
-  const setupAddressAutocomplete = (inputId: string, suggestionsId: string) => {
-    console.log(`Настройка автодополнения для ${inputId}`);
-    
-    const input = document.getElementById(inputId) as HTMLInputElement;
-    const suggestions = document.getElementById(suggestionsId);
-    
-    if (!input || !suggestions) {
-      console.error(`Не найдены элементы: input=${!!input}, suggestions=${!!suggestions}`);
-      return;
-    }
-
-    console.log(`Элементы найдены для ${inputId}`);
-
-    let timeoutId: NodeJS.Timeout | null = null;
-
-    // Обработчик изменения текста с debounce
-    input.addEventListener('input', (e) => {
-      const value = (e.target as HTMLInputElement).value;
-      console.log(`Ввод в ${inputId}: "${value}"`);
-      
-      // Обновляем состояние при ручном вводе и сбрасываем флаги выбора
-      if (inputId === 'from-address') {
-        setFromAddress(value);
-        setFromFullAddress('');
-        setFromAddressSelected(false);
-        setFromCoordinates(null);
-      } else if (inputId === 'to-address') {
-        setToAddress(value);
-        setToFullAddress('');
-        setToAddressSelected(false);
-        setToCoordinates(null);
-      }
-      
-      // Очищаем предыдущий таймер
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      
-      if (value.length > 2 && window.ymaps) {
-        // Добавляем задержку 300мс перед отправкой запроса
-        timeoutId = setTimeout(() => {
-          console.log('Отправляем запрос к Яндекс.Картам через geocode...');
-          
-          // Получаем населенный пункт НАПРЯМУЮ из DOM, чтобы получить актуальное значение
-          const settlementInput = document.getElementById(inputId === 'from-address' ? 'from-settlement' : 'to-settlement') as HTMLSelectElement;
-          const settlement = settlementInput ? settlementInput.value : '';
-          
-          console.log(`Населенный пункт (${inputId}):`, settlement);
-          console.log(`Введенное значение:`, value);
-          
-          // Формируем полный адрес для поиска
-          const fullAddress = settlement ? `${settlement}, ${value}` : value;
-          
-          console.log('Полный адрес для поиска:', fullAddress);
-          console.log('=== ОТПРАВКА В ГЕОКОДЕР ===');
-          console.log('Текст запроса:', fullAddress);
-          
-          try {
-            if (window.ymaps) {
-              window.ymaps.geocode(fullAddress, {
-                boundedBy: [
-                  [51.0, 53.0], // юго-запад Башкортостана
-                  [56.5, 60.0]  // северо-восток Башкортостана
-                ],
-                strictBounds: false,
-                results: 5
-              }).then((result: any) => {
-              console.log('Результат от Яндекс.Карт:', result);
-              
-              // Логируем все свойства результата
-              if (result && result.geoObjects) {
-                const geoObjects = result.geoObjects.toArray();
-                if (geoObjects.length > 0) {
-                  console.log('=== СВОЙСТВА ОБЪЕКТОВ ОТ ГЕОКОДЕРА ===');
-                  geoObjects.forEach((item: any, index: number) => {
-                    console.log(`\n--- Объект ${index + 1} ---`);
-                    const addressLine = item.getAddressLine ? item.getAddressLine() : 'N/A';
-                    const coordinates = item.geometry?.getCoordinates ? item.geometry.getCoordinates() : 'N/A';
-                    const name = item.properties?.get ? item.properties.get('name') : 'N/A';
-                    const kind = item.properties?.get ? item.properties.get('kind') : 'N/A';
-                    const text = item.properties?.get ? item.properties.get('text') : 'N/A';
-                    
-                    console.log('addressLine:', addressLine);
-                    console.log('coordinates:', coordinates);
-                    console.log('name:', name);
-                    console.log('kind:', kind);
-                    console.log('text:', text);
-                    
-                    // Логируем metaDataProperty.GeocoderMetaData.Address.Components
-                    const geocoderMetaData = item.properties?.get ? item.properties.get('GeocoderMetaData') : null;
-                    if (geocoderMetaData && geocoderMetaData.Address && geocoderMetaData.Address.Components) {
-                      console.log('Address Components:', geocoderMetaData.Address.Components);
-                    }
-                    
-                    console.log('Все свойства properties:', item.properties?.getAll ? item.properties.getAll() : 'N/A');
-                  });
-                }
-              }
-              
-              try {
-                if (result && result.geoObjects && typeof result.geoObjects.toArray === 'function') {
-                  const geoObjects = result.geoObjects.toArray();
-                  if (geoObjects.length > 0) {
-                    suggestions.innerHTML = '';
-                    let shownCount = 0;
-                    
-                    geoObjects.forEach((item: any) => {
-                      try {
-                        const addressLine = item.getAddressLine ? item.getAddressLine() : 'Неизвестный адрес';
-                        
-                        // Дополнительная фильтрация по Башкортостану
-                        // Исключаем общие записи типа "Республика Башкортостан"
-                        const isGeneralRegion = addressLine.toLowerCase() === 'республика башкортостан' ||
-                                               addressLine.toLowerCase() === 'башкортостан' ||
-                                               addressLine.toLowerCase().includes('республика башкортостан, россия');
-                        
-                        const isSpecificLocation = addressLine.toLowerCase().includes('уфа') ||
-                                                   addressLine.toLowerCase().includes('караидель') ||
-                                                   addressLine.toLowerCase().includes('белебей') ||
-                                                   addressLine.toLowerCase().includes('белорецк') ||
-                                                   addressLine.toLowerCase().includes('бижбуляк') ||
-                                                   addressLine.toLowerCase().includes('благовещенск') ||
-                                                   addressLine.toLowerCase().includes('давлеканово') ||
-                                                   addressLine.toLowerCase().includes('дуван') ||
-                                                   addressLine.toLowerCase().includes('ишимбай') ||
-                                                   addressLine.toLowerCase().includes('кумертау') ||
-                                                   addressLine.toLowerCase().includes('мелеуз') ||
-                                                   addressLine.toLowerCase().includes('нефтекамск') ||
-                                                   addressLine.toLowerCase().includes('октябрьский') ||
-                                                   addressLine.toLowerCase().includes('салават') ||
-                                                   addressLine.toLowerCase().includes('сибай') ||
-                                                   addressLine.toLowerCase().includes('стерлитамак') ||
-                                                   addressLine.toLowerCase().includes('туймазы') ||
-                                                   addressLine.toLowerCase().includes('учалы') ||
-                                                   addressLine.toLowerCase().includes('янаул') ||
-                                                   addressLine.toLowerCase().includes('башкортостан,') ||
-                                                   addressLine.toLowerCase().includes('башкортостан, россия');
-                        
-                        if (!isGeneralRegion && isSpecificLocation) {
-                          // Дополнительная проверка: исключаем слишком короткие или общие записи
-                          const hasSpecificDetails = addressLine.includes(',') || 
-                                                   addressLine.includes('ул.') || 
-                                                   addressLine.includes('улица') ||
-                                                   addressLine.includes('проспект') ||
-                                                   addressLine.includes('пр.') ||
-                                                   addressLine.includes('переулок') ||
-                                                   addressLine.includes('пер.') ||
-                                                   addressLine.includes('микрорайон') ||
-                                                   addressLine.includes('мкр.') ||
-                                                   addressLine.includes('район') ||
-                                                   addressLine.includes('поселок') ||
-                                                   addressLine.includes('село') ||
-                                                   addressLine.includes('деревня') ||
-                                                   addressLine.includes('д.') ||
-                                                   addressLine.includes('с.') ||
-                                                   addressLine.includes('п.') ||
-                                                   addressLine.length > 20; // Длинные названия обычно содержат детали
-                          
-                          if (hasSpecificDetails) {
-                            const div = document.createElement('div');
-                            div.className = 'suggestion-item';
-                            
-                            // Получаем координаты объекта
-                            const coordinates = item.geometry.getCoordinates();
-                            const lat = coordinates[0];
-                            const lon = coordinates[1];
-                            
-                            // Получаем свойства от геокодера
-                            const name = item.properties?.get ? item.properties.get('name') : addressLine;
-                            const text = item.properties?.get ? item.properties.get('text') : '';
-                            
-                            // Отображаем name как заголовок (выделенный, сверху)
-                            const addressDiv = document.createElement('div');
-                            addressDiv.className = 'suggestion-address';
-                            addressDiv.textContent = name;
-                            div.appendChild(addressDiv);
-                            
-                            // Отображаем text как описание (менее выделенное, внизу)
-                            if (text) {
-                              const textDiv = document.createElement('div');
-                              textDiv.className = 'suggestion-full-address';
-                              textDiv.textContent = text;
-                              div.appendChild(textDiv);
-                            }
-                            
-                            div.onclick = () => {
-                              console.log('=== ВЫБОР АДРЕСА ===');
-                              console.log('Выбран адрес:', addressLine);
-                              console.log('Координаты:', { lat, lon });
-                              
-                              // Получаем name и text
-                              const name = item.properties?.get ? item.properties.get('name') : addressLine;
-                              const text = item.properties?.get ? item.properties.get('text') : '';
-                              
-                              // Сохраняем информацию
-                              const geoObjectInfo = {
-                                name: name,
-                                text: text,
-                                addressLine: addressLine,
-                                latitude: lat,
-                                longitude: lon,
-                                coordinates: [lat, lon]
-                              };
-                              console.log('=== ИНФОРМАЦИЯ ОТ ГЕОКОДЕРА (для фронта) ===');
-                              console.log(JSON.stringify(geoObjectInfo, null, 2));
-                              
-                              input.value = name;
-                              
-                              // Сохраняем адрес в состояние в зависимости от поля и устанавливаем флаги
-                              if (inputId === 'from-address') {
-                                setFromAddress(name);
-                                setFromFullAddress(text || addressLine); // Сохраняем полный адрес для открытия на карте
-                                setFromAddressSelected(true);
-                                setFromCoordinates({ lat, lon });
-                              } else if (inputId === 'to-address') {
-                                setToAddress(name);
-                                setToFullAddress(text || addressLine); // Сохраняем полный адрес для открытия на карте
-                                setToAddressSelected(true);
-                                setToCoordinates({ lat, lon });
-                              }
-                              
-                              suggestions.innerHTML = '';
-                              suggestions.style.display = 'none';
-                            };
-                            suggestions.appendChild(div);
-                            shownCount++;
-                          }
-                        }
-                      } catch (itemError) {
-                        console.error('Ошибка обработки элемента:', itemError);
-                      }
-                    });
-                    
-                    if (shownCount > 0) {
-                      suggestions.style.display = 'block';
-                      console.log(`Показано ${shownCount} подсказок из Башкортостана`);
-                    } else {
-                      suggestions.style.display = 'none';
-                      console.log('Подсказки из Башкортостана не найдены');
-                    }
-                  } else {
-                    suggestions.style.display = 'none';
-                    console.log('Подсказки не найдены');
-                  }
-                } else {
-                  suggestions.style.display = 'none';
-                  console.log('Некорректный формат результата');
-                }
-              } catch (processingError) {
-                console.error('Ошибка обработки результата:', processingError);
-                suggestions.style.display = 'none';
-              }
-              }).catch((error: any) => {
-                console.error('Ошибка получения подсказок:', error);
-                suggestions.style.display = 'none';
-              });
-            }
-          } catch (geocodeError) {
-            console.error('Ошибка вызова geocode:', geocodeError);
-            suggestions.style.display = 'none';
-          }
-        }, 300);
-      } else {
-        suggestions.style.display = 'none';
-        if (value.length <= 2) {
-          console.log('Слишком короткий запрос');
-        }
-        if (!window.ymaps) {
-          console.log('Яндекс.Карты не загружены');
-        }
-      }
-    });
-
-    // Скрываем подсказки при клике вне поля
-    document.addEventListener('click', (e) => {
-      if (!input.contains(e.target as Node) && !suggestions.contains(e.target as Node)) {
-        suggestions.style.display = 'none';
-      }
-    });
-
-    // Скрываем подсказки при потере фокуса
-    input.addEventListener('blur', () => {
-      setTimeout(() => {
-        suggestions.style.display = 'none';
-      }, 200);
-    });
-    
-    console.log(`Автодополнение настроено для ${inputId}`);
-  };
 
   const checkAdminStatus = async () => {
     try {
