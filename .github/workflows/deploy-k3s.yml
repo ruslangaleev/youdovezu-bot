@@ -45,6 +45,10 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-install-dir: '~/.dotnet'   # установка в домашнюю директорию пользователя
+
+      - name: Add .NET to PATH
+        run: echo "$HOME/.dotnet" >> $GITHUB_PATH
 
       - name: Restore .NET dependencies
         working-directory: ./backend
