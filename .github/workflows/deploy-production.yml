@@ -98,6 +98,9 @@ jobs:
           tar czf - --exclude='.git' --exclude='node_modules' --exclude='bin' --exclude='obj' --exclude='.vs' --exclude='.vscode' . | \
             ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "cd ${DEPLOY_PATH}/backend && tar xzf -"
           
+          # Возвращаемся в корневую директорию для копирования docker-compose файлов
+          cd ..
+          
           # Копируем docker-compose файлы
           scp backend/docker-compose.yml ${VPS_USER}@${VPS_HOST}:${DEPLOY_PATH}/backend/
           scp backend/docker-compose.prod.yml ${VPS_USER}@${VPS_HOST}:${DEPLOY_PATH}/backend/
