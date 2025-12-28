@@ -47,8 +47,9 @@ jobs:
           mkdir -p ~/.dotnet
           
           # Скачиваем скрипт установки .NET
+          # Используем канал 8.0 (без .x) для установки последней версии из этого канала
           curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin \
-            --channel ${{ env.DOTNET_VERSION }} \
+            --channel 8.0 \
             --install-dir ~/.dotnet \
             --skip-non-versioned-files
           
