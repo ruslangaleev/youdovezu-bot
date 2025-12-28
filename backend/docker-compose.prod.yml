@@ -4,16 +4,23 @@ services:
     build:
       context: .
       dockerfile: Youdovezu.Presentation/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_HTTP_PORTS=8080
-      - ASPNETCORE_HTTPS_PORTS=8081
-      # Telegram Bot Configuration - должны быть заданы через переменные окружения
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_SECRET_TOKEN=${TELEGRAM_SECRET_TOKEN}
+      - ASPNETCORE_URLS=http://+:8080
+      # Database connection string
+      - Database__ConnectionString=Host=postgres;Port=5432;Database=youdovezu;Username=youdovezu;Password=youdovezu_password
     ports:
-      - "8080:8080"  # HTTP
-      - "8081:8081"  # HTTPS
+      - "8080:8080"  # HTTP only (HTTPS handled by reverse proxy)
+    volumes:
+      - uploads_data:/app/uploads
+    user: root
+    command: sh -c "mkdir -p /app/uploads/driver-documents && chmod -R 777 /app/uploads && dotnet Youdovezu.Presentation.dll"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/bot/health"]
@@ -21,3 +28,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+volumes:
+  uploads_data:
