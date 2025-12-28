@@ -42,13 +42,22 @@ jobs:
           cp -r frontend/build/* backend/Youdovezu.Presentation/wwwroot/
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-          dotnet-install-dir: '~/.dotnet'   # установка в домашнюю директорию пользователя
-
-      - name: Add .NET to PATH
-        run: echo "$HOME/.dotnet" >> $GITHUB_PATH
+        run: |
+          # Создаем директорию для .NET в домашней папке пользователя
+          mkdir -p ~/.dotnet
+          
+          # Скачиваем скрипт установки .NET
+          curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin \
+            --channel ${{ env.DOTNET_VERSION }} \
+            --install-dir ~/.dotnet \
+            --skip-non-versioned-files
+          
+          # Добавляем .NET в PATH для текущей сессии
+          echo "$HOME/.dotnet" >> $GITHUB_PATH
+          
+          # Проверяем установку
+          export PATH="$HOME/.dotnet:$PATH"
+          dotnet --version
 
       - name: Restore .NET dependencies
         working-directory: ./backend
