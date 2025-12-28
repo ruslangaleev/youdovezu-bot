@@ -1,4 +1,32 @@
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: youdovezu-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot-www:/var/www/certbot:ro
+      - certbot-certs:/etc/letsencrypt:ro
+    depends_on:
+      - youdovezu.presentation
+    restart: unless-stopped
+    networks:
+      - youdovezu-network
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: youdovezu-certbot
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot --webroot-path=/var/www/certbot --quiet; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+    networks:
+      - youdovezu-network
+
   youdovezu.presentation:
     image: ${DOCKER_REGISTRY-}youdovezupresentation
     build:
@@ -13,10 +41,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_URLS=http://+:8080
-      # Database connection string
       - Database__ConnectionString=Host=postgres;Port=5432;Database=youdovezu;Username=youdovezu;Password=youdovezu_password
-    ports:
-      - "8080:8080"  # HTTP only (HTTPS handled by reverse proxy)
+    expose:
+      - "8080"
     volumes:
       - uploads_data:/app/uploads
     user: root
@@ -28,6 +55,33 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - youdovezu-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: youdovezu-postgres
+    environment:
+      - POSTGRES_DB=youdovezu
+      - POSTGRES_USER=youdovezu
+      - POSTGRES_PASSWORD=youdovezu_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youdovezu -d youdovezu"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - youdovezu-network
 
 volumes:
+  postgres_data:
   uploads_data:
+  certbot-www:
+  certbot-certs:
+
+networks:
+  youdovezu-network:
+    driver: bridge

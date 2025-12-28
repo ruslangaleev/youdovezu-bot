@@ -1,4 +1,4 @@
-name: Deploy to k3s
+name: Deploy to Production
 
 on:
   push:
@@ -45,22 +45,9 @@ jobs:
           dotnet build Youdovezu.sln --configuration Release --no-restore
           docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -f Youdovezu.Presentation/Dockerfile .
 
-      - name: Deploy to k3s
+      - name: Deploy with Docker Compose
+        working-directory: ./backend
         run: |
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/postgres-secret.yaml
-          kubectl apply -f k8s/postgres-statefulset.yaml
-          kubectl wait --for=condition=ready pod -l app=postgres -n youdovezu --timeout=120s
-          
-          kubectl create secret generic app-secret \
-            --from-literal=Telegram__BotToken="${TELEGRAM_BOT_TOKEN}" \
-            --from-literal=Telegram__SecretToken="${TELEGRAM_SECRET_TOKEN}" \
-            -n youdovezu --dry-run=client -o yaml | kubectl apply -f -
-          
-          kubectl apply -f k8s/app-pvc.yaml
-          kubectl apply -f k8s/app-configmap.yaml
-          kubectl apply -f k8s/app-deployment.yaml
-          kubectl apply -f k8s/app-service.yaml
-          
-          kubectl rollout status deployment/youdovezu-app -n youdovezu --timeout=180s
-
+          docker compose -f docker-compose.prod.yml pull || true
+          docker compose -f docker-compose.prod.yml up -d --build
+          docker compose -f docker-compose.prod.yml ps
