@@ -125,23 +125,23 @@ jobs:
             fi
             
             # Останавливаем старые контейнеры
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml down || true
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml down || true
             
             # Собираем и запускаем новые контейнеры
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
             
             # Запускаем контейнеры в фоновом режиме
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
             
             # Очищаем неиспользуемые образы и контейнеры
             docker system prune -f
             
             # Показываем статус контейнеров
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml ps
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
             
             # Показываем последние логи
             echo '=== Recent logs ==='
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=50
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=50
           "
 
       - name: Health check
@@ -163,7 +163,7 @@ jobs:
             RETRY_COUNT=0
             
             while [ \$RETRY_COUNT -lt \$MAX_RETRIES ]; do
-              if docker-compose -f docker-compose.yml -f docker-compose.prod.yml exec -T youdovezu.presentation curl -f \$HEALTH_URL > /dev/null 2>&1; then
+              if docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T youdovezu.presentation curl -f \$HEALTH_URL > /dev/null 2>&1; then
                 echo 'Health check passed!'
                 exit 0
               fi
@@ -174,7 +174,7 @@ jobs:
             done
             
             echo 'Health check failed after all retries'
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=100
             exit 1
           "
 
