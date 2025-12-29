@@ -4,31 +4,7 @@
 
 ## Варианты развертывания
 
-### 1. k3s (рекомендуется)
-
-Развертывание в Kubernetes кластер k3s с использованием self-hosted runner.
-
-**Документация:**
-- **[k3s-setup.md](./k3s-setup.md)** - Подробная инструкция по настройке k3s и self-hosted runner
-- **[k8s/README.md](../k8s/README.md)** - Описание Kubernetes манифестов
-
-**Workflow:**
-- **`.github/workflows/deploy-k3s.yml`** - GitHub Actions workflow для развертывания в k3s
-
-**Процесс:**
-1. Сборка фронтенда и backend
-2. Сборка Docker образа
-3. Загрузка образа в k3s (локально)
-4. Применение Kubernetes манифестов
-5. Health check
-
-**Требования:**
-- k3s установлен на сервере
-- Self-hosted runner настроен
-- Docker для сборки образов
-- kubectl для управления кластером
-
-### 2. Docker Compose (legacy)
+### 1. Docker Compose (legacy)
 
 Развертывание через Docker Compose на VPS сервере.
 
@@ -60,6 +36,5 @@
 ## Поддержка
 
 При возникновении проблем:
-- Для k3s: см. раздел "Устранение неполадок" в [k3s-setup.md](./k3s-setup.md)
 - Для Docker Compose: см. раздел "Устранение неполадок" в [github-actions-setup.md](./github-actions-setup.md)
 
