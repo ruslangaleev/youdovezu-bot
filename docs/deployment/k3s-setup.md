@@ -297,3 +297,4 @@ kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheu
 3. Проверьте события: `kubectl get events -n youdovezu`
 4. Создайте issue в репозитории с описанием проблемы
 
+

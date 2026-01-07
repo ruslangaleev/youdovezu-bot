@@ -111,3 +111,4 @@ docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
 - ✅ Включен rate limiting для API
 - ✅ Сертификаты обновляются автоматически
 
+

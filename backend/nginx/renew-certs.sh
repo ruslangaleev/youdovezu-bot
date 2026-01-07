@@ -8,3 +8,4 @@ docker compose -f docker-compose.prod.yml exec certbot certbot renew --webroot -
 # Перезагружаем nginx после обновления сертификатов
 docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
 
+
