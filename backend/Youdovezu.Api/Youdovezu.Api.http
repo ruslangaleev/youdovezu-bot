@@ -1,0 +1,6 @@
+@Youdovezu.Api_HostAddress = http://localhost:5105
+
+GET {{Youdovezu.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -3,7 +3,7 @@ using Youdovezu.Application.Interfaces;
 using Youdovezu.Domain.Entities;
 using Youdovezu.Infrastructure.Services;
 
-namespace Youdovezu.Presentation.Controllers;
+namespace Youdovezu.Api.Controllers;
 
 /// <summary>
 /// Контроллер для поиска объявлений от Requester'ов

@@ -63,7 +63,7 @@ docker run -e TELEGRAM_BOT__BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9Tz
 **Docker Compose:**
 ```yaml
 services:
-  youdovezu.presentation:
+  youdovezu.api:
     environment:
       - TELEGRAM_BOT__BOT_TOKEN=7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI
       - TELEGRAM_BOT__SECRET_TOKEN=your-secret-token-here
@@ -162,7 +162,7 @@ openssl rand -hex 16
 
 ```bash
 cd backend
-dotnet run --project Youdovezu.Presentation
+dotnet run --project Youdovezu.Api
 ```
 
 **Порты приложения:**
@@ -236,7 +236,7 @@ docker-compose up --build -d
 
 **Просмотр логов:**
 ```bash
-docker-compose logs -f youdovezu.presentation
+docker-compose logs -f youdovezu.api
 ```
 
 **Остановка:**
@@ -261,4 +261,4 @@ docker-compose down
 - `Youdovezu.Application` - Бизнес-логика и сервисы
 - `Youdovezu.Domain` - Доменные модели
 - `Youdovezu.Infrastructure` - Инфраструктурные компоненты
-- `Youdovezu.Presentation` - Web API и контроллеры
+- `Youdovezu.Api` - Web API и контроллеры

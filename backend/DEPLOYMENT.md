@@ -51,13 +51,13 @@ curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
 
 ```bash
 # Просмотр логов
-docker-compose logs -f youdovezu.presentation
+docker-compose logs -f youdovezu.api
 
 # Остановка
 docker-compose down
 
 # Перезапуск
-docker-compose restart youdovezu.presentation
+docker-compose restart youdovezu.api
 
 # Проверка статуса
 docker-compose ps

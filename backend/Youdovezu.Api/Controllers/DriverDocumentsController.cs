@@ -6,7 +6,7 @@ using System.IO;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.WebUtilities;
 
-namespace Youdovezu.Presentation.Controllers;
+namespace Youdovezu.Api.Controllers;
 
 /// <summary>
 /// Контроллер для работы с документами водителя

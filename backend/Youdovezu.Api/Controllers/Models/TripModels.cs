@@ -1,4 +1,4 @@
-namespace Youdovezu.Presentation.Controllers;
+namespace Youdovezu.Api.Controllers;
 
 /// <summary>
 /// Модель запроса для создания поездки

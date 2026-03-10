@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Youdovezu.Application", "Yo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Youdovezu.Infrastructure", "Youdovezu.Infrastructure\Youdovezu.Infrastructure.csproj", "{56EFA8EA-86B4-4984-9D76-D3C5A3FC11A2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Youdovezu.Presentation", "Youdovezu.Presentation\Youdovezu.Presentation.csproj", "{8A129701-8B77-48F8-AB53-C83A7364062C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Youdovezu.Api", "Youdovezu.Api\Youdovezu.Api.csproj", "{8A129701-8B77-48F8-AB53-C83A7364062C}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{81DDED9D-158B-E303-5F62-77A2896D2A5A}"
 EndProject

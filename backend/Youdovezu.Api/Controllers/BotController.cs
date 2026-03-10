@@ -7,7 +7,7 @@ using Youdovezu.Infrastructure.Services;
 using Youdovezu.Infrastructure.Converters;
 using System.Text.Json;
 
-namespace Youdovezu.Presentation.Controllers;
+namespace Youdovezu.Api.Controllers;
 
 /// <summary>
 /// Контроллер для обработки webhook запросов от Telegram Bot API
@@ -42,10 +42,10 @@ public class BotController : ControllerBase
     public async Task<IActionResult> Webhook([FromBody] object updateObject)
     {
         try
-        {
-            // Логируем входящий объект для отладки
-            _logger.LogInformation("Received webhook object: {UpdateObject}", JsonSerializer.Serialize(updateObject));
+        {ok object: {UpdateObject}", JsonSerializer.Serialize(updateObject));
 
+            // Логируем входящий объект для отладки
+            _logger.LogInformation("Received webho
             // Маппим объект в Update с правильной конфигурацией JSON
             Update update;
             try

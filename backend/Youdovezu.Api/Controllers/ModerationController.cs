@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Youdovezu.Application.Interfaces;
 using Youdovezu.Infrastructure.Services;
 
-namespace Youdovezu.Presentation.Controllers;
+namespace Youdovezu.Api.Controllers;
 
 /// <summary>
 /// Контроллер для модерации документов (только для администраторов)

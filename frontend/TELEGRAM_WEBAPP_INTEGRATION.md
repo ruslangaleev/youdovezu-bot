@@ -303,7 +303,7 @@ npm start -- --reset-cache
 npm run build:production
 
 # Проверить логи сервера
-docker compose logs youdovezu.presentation
+docker compose logs youdovezu.api
 ```
 
 ## Заключение

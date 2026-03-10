@@ -12,22 +12,22 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Youdovezu.Presentation/Youdovezu.Presentation.csproj", "Youdovezu.Presentation/"]
+COPY ["Youdovezu.Api/Youdovezu.Api.csproj", "Youdovezu.Api/"]
 COPY ["Youdovezu.Application/Youdovezu.Application.csproj", "Youdovezu.Application/"]
 COPY ["Youdovezu.Domain/Youdovezu.Domain.csproj", "Youdovezu.Domain/"]
 COPY ["Youdovezu.Infrastructure/Youdovezu.Infrastructure.csproj", "Youdovezu.Infrastructure/"]
-RUN dotnet restore "./Youdovezu.Presentation/Youdovezu.Presentation.csproj"
+RUN dotnet restore "./Youdovezu.Api/Youdovezu.Api.csproj"
 COPY . .
-WORKDIR "/src/Youdovezu.Presentation"
-RUN dotnet build "./Youdovezu.Presentation.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/Youdovezu.Api"
+RUN dotnet build "./Youdovezu.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Этот этап используется для публикации проекта службы, который будет скопирован на последний этап
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Youdovezu.Presentation.csproj" -c $BUILD_CONFIGURATION -o /app/publish
+RUN dotnet publish "./Youdovezu.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish
 
 # Этот этап используется в рабочей среде или при запуске из VS в обычном режиме (по умолчанию, когда конфигурация отладки не используется)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Youdovezu.Presentation.dll"]
+ENTRYPOINT ["dotnet", "Youdovezu.Api.dll"]

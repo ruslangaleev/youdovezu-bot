@@ -1,37 +1,9 @@
 services:
-  nginx:
-    image: nginx:alpine
-    container_name: youdovezu-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - certbot-www:/var/www/certbot:ro
-      - certbot-certs:/etc/letsencrypt:ro
-    depends_on:
-      - youdovezu.presentation
-    restart: unless-stopped
-    networks:
-      - youdovezu-network
-
-  certbot:
-    image: certbot/certbot:latest
-    container_name: youdovezu-certbot
-    volumes:
-      - certbot-www:/var/www/certbot
-      - certbot-certs:/etc/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot --webroot-path=/var/www/certbot --quiet; sleep 12h & wait $${!}; done;'"
-    restart: unless-stopped
-    networks:
-      - youdovezu-network
-
-  youdovezu.presentation:
-    image: ${DOCKER_REGISTRY-}youdovezupresentation
+  youdovezu.server:
+    image: youdovezu-server
     build:
       context: .
-      dockerfile: Youdovezu.Presentation/Dockerfile
+      dockerfile: Youdovezu.Api/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,7 +19,7 @@ services:
     volumes:
       - uploads_data:/app/uploads
     user: root
-    command: sh -c "mkdir -p /app/uploads/driver-documents && chmod -R 777 /app/uploads && dotnet Youdovezu.Presentation.dll"
+    command: sh -c "mkdir -p /app/uploads/driver-documents && chmod -R 777 /app/uploads && dotnet Youdovezu.Api.dll"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/bot/health"]
@@ -57,6 +29,25 @@ services:
       start_period: 40s
     networks:
       - youdovezu-network
+
+  youdovezu.frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=http://youdovezu.server:8080
+        - REACT_APP_WEBAPP_URL=http://localhost:3000
+        - REACT_APP_TEST_MODE=false
+        - NODE_ENV=production
+    image: youdovezu-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      youdovezu.server:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - youdovezu-network      
 
   postgres:
     image: postgres:15-alpine

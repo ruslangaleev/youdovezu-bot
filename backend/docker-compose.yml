@@ -1,26 +1,25 @@
 services:
-  youdovezu.presentation:
-    image: ${DOCKER_REGISTRY-}youdovezupresentation
+  youdovezu.server:
+    image: youdovezu-server
     build:
       context: .
-      dockerfile: Youdovezu.Presentation/Dockerfile
+      dockerfile: Youdovezu.Api/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       - Database__ConnectionString=Host=postgres;Port=5432;Database=youdovezu;Username=youdovezu;Password=youdovezu_password
-      - Telegram__BotToken=${Telegram__BotToken:-7642287932:AAGAaP0BdJgvxrE3UEfdAoDcrJ0D9TzmSJI}
-      - Telegram__SecretToken=${Telegram__SecretToken:-dev-secret-token-123}
-      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
-      - ASPNETCORE_HTTP_PORTS=${ASPNETCORE_HTTP_PORTS:-8080}
-      - ASPNETCORE_HTTPS_PORTS=${ASPNETCORE_HTTPS_PORTS:-8081}
+      - Telegram__BotToken=${Telegram__BotToken}
+      - Telegram__SecretToken=${Telegram__SecretToken}
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - AllowedOrigins=https://localhost:3000,http://localhost:3000
     ports:
       - "8080:8080"
     volumes:
       - uploads_data:/app/uploads
     # Используем init для установки прав на volume при запуске
     user: root
-    command: sh -c "mkdir -p /app/uploads/driver-documents && chmod -R 777 /app/uploads && dotnet Youdovezu.Presentation.dll"
+    command: sh -c "mkdir -p /app/uploads/driver-documents && chmod -R 777 /app/uploads && dotnet Youdovezu.Api.dll"
     restart: unless-stopped
 
   postgres:
@@ -45,8 +44,8 @@ services:
     image: dpage/pgadmin4:latest
     container_name: youdovezu-pgadmin
     environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@youdovezu.com}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin123}
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
       - PGADMIN_CONFIG_SERVER_MODE=False
       - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
     ports:

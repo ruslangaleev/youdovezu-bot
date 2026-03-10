@@ -298,3 +298,5 @@ kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheu
 4. Создайте issue в репозитории с описанием проблемы
 
 
+
+

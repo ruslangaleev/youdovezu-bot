@@ -214,7 +214,7 @@ cd /opt/youdovezu-bot/backend
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
 
 # Просмотр логов конкретного сервиса
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs -f youdovezu.presentation
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml logs -f youdovezu.api
 ```
 
 ## Проверка работоспособности
@@ -313,5 +313,6 @@ crontab -e
 2. Проверьте логи на сервере
 3. Проверьте документацию Docker и Docker Compose
 4. Создайте issue в репозитории с описанием проблемы
+
 
 

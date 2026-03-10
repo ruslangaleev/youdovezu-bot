@@ -3,7 +3,7 @@ using Youdovezu.Application.Interfaces;
 using Youdovezu.Domain.Entities;
 using Youdovezu.Infrastructure.Services;
 
-namespace Youdovezu.Presentation.Controllers;
+namespace Youdovezu.Api.Controllers;
 
 /// <summary>
 /// Базовый класс для контроллеров веб-приложения Telegram с общими методами валидации

@@ -1,6 +1,0 @@
-@Youdovezu.Presentation_HostAddress = http://localhost:5105
-
-GET {{Youdovezu.Presentation_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

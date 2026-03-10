@@ -26,7 +26,7 @@
 ### 1. Backend: Удалить клавиатуру после подтверждения номера
 
 #### 1.1. BotController: Удалить клавиатуру после обновления номера
-- [ ] **Файл**: `backend/Youdovezu.Presentation/Controllers/BotController.cs`
+- [ ] **Файл**: `backend/Youdovezu.Api/Controllers/BotController.cs`
 - [ ] **Метод**: `ProcessContactMessage()` (строка ~241)
 - [ ] **Место**: После успешного обновления номера телефона (после строки ~281)
 - [ ] **Действие**: 
@@ -63,7 +63,7 @@
 ### Альтернативный вариант (более простой):
 
 #### 1.3. BotController: Отправить сообщение с удалением клавиатуры и главным меню
-- [ ] **Файл**: `backend/Youdovezu.Presentation/Controllers/BotController.cs`
+- [ ] **Файл**: `backend/Youdovezu.Api/Controllers/BotController.cs`
 - [ ] **Метод**: `ProcessContactMessage()` (строка ~241)
 - [ ] **Место**: Вместо отправки сообщения о завершении регистрации (строка ~281)
 - [ ] **Действие**: Заменить отправку сообщения на отправку с удалением клавиатуры и вызовом главного меню
@@ -109,7 +109,7 @@
 
 ### Backend:
 1. `backend/Youdovezu.Infrastructure/Services/TelegramBotService.cs` - изменить `SendMainMenuAsync()` на `public`
-2. `backend/Youdovezu.Presentation/Controllers/BotController.cs` - добавить удаление клавиатуры и вызов главного меню
+2. `backend/Youdovezu.Api/Controllers/BotController.cs` - добавить удаление клавиатуры и вызов главного меню
 
 ### Frontend:
 - Изменения не требуются (проблема только в боте)
