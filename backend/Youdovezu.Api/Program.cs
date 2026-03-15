@@ -146,13 +146,17 @@ app.UseCors("AllowTunaClient");
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("Telegram Bot configuration loaded successfully");
 
-// Автоматическое применение миграций при запуске приложения
+// Создание БД при отсутствии, затем автоматическое применение миграций
+var connectionString = app.Configuration.GetConnectionString("DefaultConnection")
+    ?? app.Configuration["Database:ConnectionString"];
+await Youdovezu.Infrastructure.Data.DatabaseInitializer.EnsurePostgresDatabaseExistsAsync(connectionString ?? "");
+await Youdovezu.Infrastructure.Data.DatabaseInitializer.EnsureMigrationsHistoryTableExistsAsync(connectionString ?? "");
+
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<YoudovezuDbContext>();
     try
     {
-        // Применяем все ожидающие миграции
         await context.Database.MigrateAsync();
         logger.LogInformation("Database migrations applied successfully");
     }

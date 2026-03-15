@@ -109,11 +109,11 @@ public class TelegramBotService : ITelegramBotService
                 return;
             }
 
-            // Проверяем, зарегистрирован ли пользователь
+            // Проверяем, зарегистрирован ли пользователь. Если нет — обрабатываем как /start
             var user = await _userService.GetUserByTelegramIdAsync(message.UserId);
             if (user == null)
             {
-                await SendMessageAsync(message.ChatId, "Для начала работы с ботом выполните команду /start");
+                await HandleStartCommandAsync(message);
                 return;
             }
 
